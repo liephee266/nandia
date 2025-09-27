@@ -3,18 +3,19 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Repository\UsersRepository;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use App\Repository\UsersRepository;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ORM\Entity(repositoryClass: UsersRepository::class)]
 #[ApiResource(
@@ -41,8 +42,11 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
-    #[Assert\NotBlank]
     private ?string $password = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['user:write'])]
+    private ?string $plainPassword = null;
 
     #[ORM\Column(length: 100, nullable: true)]
     #[Groups(['user:read', 'user:write'])]
@@ -59,6 +63,8 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Response::class)]
     private Collection $responses;
+
+
 
     public function __construct()
     {
@@ -93,6 +99,17 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->password = $password;
         return $this;
+    }
+
+    #[Groups(['user:write'])]
+    public function setPlainPassword(string $plainPassword): void
+    {
+        $this->plainPassword = $plainPassword;
+    }
+
+    public function getPlainPassword(): ?string
+    {
+        return $this->plainPassword;
     }
 
     public function getPseudo(): ?string

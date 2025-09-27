@@ -1,5 +1,3 @@
-# config/packages/security.yaml
-
 security:
     password_hashers:
         App\Entity\Users:
@@ -9,14 +7,16 @@ security:
         app_user_provider:
             entity:
                 class: App\Entity\Users
-                property: email
+                property: email   # <-- ici on change username -> email
 
     firewalls:
         login:
-            pattern: ^/api/login
+            pattern: ^/api/v1/connexion
             stateless: true
             json_login:
-                check_path: /api/login_check
+                check_path: /api/v1/connexion
+                username_path: email    # <-- clé attendue dans JSON
+                password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
@@ -26,7 +26,8 @@ security:
             jwt: ~
 
     access_control:
-        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/connexion, roles: PUBLIC_ACCESS }
+        - { path: ^/api/users, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
     role_hierarchy:

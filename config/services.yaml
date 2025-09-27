@@ -15,6 +15,18 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Tests/'
+
+    # Déclaration explicite du subscriber pour hasher le mot de passe
+    App\EventSubscriber\UserPasswordHasherSubscriber:
+        arguments:
+            $passwordHasher: '@security.password_hasher'
+        tags:
+            - { name: doctrine.event_subscriber, connection: default }
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
