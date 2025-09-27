@@ -1,0 +1,9 @@
+# docker/frankenphp/conf.frankenphp.yaml
+frankenphp:
+  document_root: /app/public
+  bootstrap: index.php
+
+  worker:
+    command: php
+    max_requests: 1000
+    concurrency: 8
