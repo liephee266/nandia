@@ -1,0 +1,108 @@
+<?php
+// src/Entity/Theme.php
+
+namespace App\Entity;
+
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
+use Doctrine\ORM\Mapping as ORM;
+use App\Repository\ThemeRepository;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+
+#[ORM\Entity(repositoryClass: ThemeRepository::class)]
+#[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection(),
+        new Post()
+    ],
+    normalizationContext: ['groups' => ['theme:read']],
+    denormalizationContext: ['groups' => ['theme:write']]
+)]
+class Theme
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    #[Groups(['theme:read', 'card:read'])]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 100)]
+    #[Assert\NotBlank]
+    #[Groups(['theme:read', 'theme:write', 'card:read'])]
+    private ?string $name = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['theme:read', 'theme:write'])]
+    private ?string $icon = null;
+
+    #[ORM\Column(length: 7, nullable: true)]
+    #[Groups(['theme:read', 'theme:write'])]
+    private ?string $colorCode = null;
+
+    #[ORM\OneToMany(mappedBy: 'theme', targetEntity: Card::class)]
+    private Collection $cards;
+
+    #[ORM\OneToMany(mappedBy: 'theme', targetEntity: Ritual::class)]
+    private Collection $rituals;
+
+    public function __construct()
+    {
+        $this->cards = new ArrayCollection();
+        $this->rituals = new ArrayCollection();
+    }
+
+    // Getters et Setters...
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(string $name): self
+    {
+        $this->name = $name;
+        return $this;
+    }
+
+    public function getIcon(): ?string
+    {
+        return $this->icon;
+    }
+
+    public function setIcon(?string $icon): self
+    {
+        $this->icon = $icon;
+        return $this;
+    }
+
+    public function getColorCode(): ?string
+    {
+        return $this->colorCode;
+    }
+
+    public function setColorCode(?string $colorCode): self
+    {
+        $this->colorCode = $colorCode;
+        return $this;
+    }
+
+    public function getCards(): Collection
+    {
+        return $this->cards;
+    }
+
+    public function getRituals(): Collection
+    {
+        return $this->rituals;
+    }
+}
