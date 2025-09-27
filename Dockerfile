@@ -11,7 +11,7 @@ RUN docker-php-ext-install \
     pdo_pgsql \
     intl \
     zip
-    
+
 # Installe Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -20,7 +20,7 @@ WORKDIR /app
 COPY . .
 
 # Installe les dépendances PHP
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 # Autorise Symfony à fonctionner en production
 ENV APP_ENV=prod
