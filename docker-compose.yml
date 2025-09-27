@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   symfony:
     build:
@@ -8,6 +10,7 @@ services:
       - "${SYMFONY_HTTPS_PORT}:443"
     volumes:
       - .:/app
+      - vendor:/app/vendor
     environment:
       APP_ENV: ${APP_ENV}
       DATABASE_URL: ${DATABASE_URL}
@@ -51,3 +54,4 @@ services:
 volumes:
   pgdata:
   pgadmin_data:
+  vendor:
