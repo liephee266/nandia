@@ -25,14 +25,19 @@ get_port() {
 }
 
 # Obtenir les ports dynamiquement
-SYMFONY_PORT=$(get_port symfony 8443)
+SYMFONY_HTTP_PORT=$(get_port symfony 80)
+SYMFONY_HTTPS_PORT=$(get_port symfony 443)
 PGADMIN_PORT=$(get_port pgadmin 80)
 POSTGRES_PORT=$(get_port database 5432)
 
-
 echo -e "\n${CYAN}🔗 Accès aux services (${SERVER_IP}) :${NC}"
 
-[[ -n "$SYMFONY_PORT" ]] && echo -e "🌐 Symfony (FrankenPHP)   : http://${SERVER_IP}:${SYMFONY_PORT}"
+if [[ -n "$SYMFONY_HTTPS_PORT" ]]; then
+  echo -e "🌐 Symfony (HTTPS)         : https://${SERVER_IP}:${SYMFONY_HTTPS_PORT}"
+elif [[ -n "$SYMFONY_HTTP_PORT" ]]; then
+  echo -e "🌐 Symfony (HTTP)          : http://${SERVER_IP}:${SYMFONY_HTTP_PORT}"
+fi
+
 [[ -n "$PGADMIN_PORT" ]] && echo -e "🛠️  pgAdmin                : http://${SERVER_IP}:${PGADMIN_PORT} (admin@example.com / admin)"
 [[ -n "$POSTGRES_PORT" ]] && echo -e "🐘 PostgreSQL              : ${SERVER_IP}:${POSTGRES_PORT} (postgres / postgres)"
 
