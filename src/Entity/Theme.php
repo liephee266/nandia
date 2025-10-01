@@ -37,6 +37,11 @@ class Theme
     #[Groups(['theme:read', 'theme:write', 'card:read'])]
     private ?string $name = null;
 
+    #[ORM\Column(length: 400, type: 'text', nullable: true)]
+    #[Assert\NotBlank]
+    #[Groups(['theme:read', 'theme:write', 'card:read'])]
+    private ?string $description = null;
+
     #[ORM\Column(length: 50, nullable: true)]
     #[Groups(['theme:read', 'theme:write'])]
     private ?string $icon = null;
@@ -71,6 +76,17 @@ class Theme
     public function setName(string $name): self
     {
         $this->name = $name;
+        return $this;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(string $description): self
+    {
+        $this->description = $description;
         return $this;
     }
 

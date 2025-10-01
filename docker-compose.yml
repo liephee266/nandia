@@ -1,10 +1,12 @@
-version: "3.9"
-
 services:
   symfony:
     build:
       context: .
       dockerfile: Dockerfile
+      # Supprime les args de proxy si présents
+      # args:
+      #   HTTP_PROXY: ""
+      #   HTTPS_PROXY: ""
     ports:
       - "${SYMFONY_HTTP_PORT}:80"
       - "${SYMFONY_HTTPS_PORT}:443"
@@ -19,6 +21,8 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
       JWT_PASSPHRASE: ${JWT_PASSPHRASE}
+      # Forcer Docker à ne pas utiliser de proxy
+      NO_PROXY: "*"
     container_name: symfony_app_nandia
     restart: unless-stopped
     depends_on:
