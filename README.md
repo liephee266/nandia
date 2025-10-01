@@ -195,10 +195,4 @@ L’application Flutter associée permet de :
 
 ---
 
-## 📄 Licence
 
-MIT
-
---- 
-
-Souhaitez-vous que je vous aide à **implémenter la logique pour piocher une carte aléatoire unique (pas de doublon)** dans votre application Flutter ?
