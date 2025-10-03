@@ -42,6 +42,16 @@ class Theme
     #[Groups(['theme:read', 'theme:write', 'card:read'])]
     private ?string $description = null;
 
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\NotBlank]
+    #[Groups(['theme:read', 'theme:write'])]
+    private ?string $size = '1x1';
+
+    #[ORM\Column(length: 400, type: 'text', nullable: true)]
+    #[Assert\NotBlank]
+    #[Groups(['theme:read', 'theme:write', 'card:read'])]
+    private ?string $backgroundImage = null;
+
     #[ORM\Column(length: 50, nullable: true)]
     #[Groups(['theme:read', 'theme:write'])]
     private ?string $icon = null;
@@ -87,6 +97,28 @@ class Theme
     public function setDescription(string $description): self
     {
         $this->description = $description;
+        return $this;
+    }
+
+    public function getSize(): ?string
+    {
+        return $this->size;
+    }
+
+    public function setSize(?string $size): self
+    {
+        $this->size = $size;
+        return $this;
+    }
+
+    public function getBackgroundImage(): ?string
+    {
+        return $this->backgroundImage;
+    }
+
+    public function setBackgroundImage(?string $backgroundImage): self
+    {
+        $this->backgroundImage = $backgroundImage;
         return $this;
     }
 
