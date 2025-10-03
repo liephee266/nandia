@@ -1,258 +1,198 @@
-Le projet Mix &amp; Match a pour objectif de développer une plateforme web interactive dédiée à la gestion et à la présentation des composants de parfumerie (flacons, pompes, capots) dans le cadre de l’activité Private Label du Groupe ARTHES. 
+# 🎲 API Nandia
 
-
-# 📌 **Spécification API Mix & Match**
-
----
-
-## 🔑 Authentification
-
-* **Type** : JWT (LexikJWTAuthenticationBundle)
-* **Endpoints :**
-
-  * `POST /auth/login`
-
-    * **Payload** : `{ "email": "user@mail.com", "password": "secret" }`
-    * **Response 200** : `{ "token": "jwt-token" }`
-  * Les endpoints internes (`/users`, `/composants`, `/vues_clients`) nécessitent un **Authorization: Bearer <token>`.
-  * Les endpoints publics (`/views/{id}`) sont **sans auth**.
+**Nandia** est une application mobile conçue pour **renforcer les liens affectifs** entre couples à travers des **échanges sincères et profonds**. L’application propose des **cartes de questions** organisées par **thèmes**, permettant de (re)découvrir l’autre, de partager des émotions, des fantasmes, des valeurs et des projets communs.
 
 ---
 
-## 👤 Utilisateurs (Interne – Back-office)
+## 🧩 Objectifs de l’API
 
-### `POST /users`
+L’API Nandia permet de :
 
-➡️ Créer un utilisateur (réservé super_admin).
+- Gérer les **utilisateurs** (inscription, connexion, profil).
+- Créer, lire, modifier et supprimer des **thèmes** et des **cartes de questions**.
+- Gérer les **parties** (sessions de jeu) et les **réponses** des utilisateurs.
+- Permettre la **personnalisation** (thèmes, musique, ambiance).
+- Sauvegarder un **journal de couple** (historique des réponses).
+- Gérer les **extensions** et **packs de cartes** (thématiques supplémentaires).
 
-```json
+---
+
+## 🛠️ Technologies utilisées
+
+- **Backend** : Symfony 6 + API Platform
+- **Authentification** : JWT
+- **Base de données** : PostgreSQL
+- **ORM** : Doctrine
+- **Frontend** : Flutter (application mobile)
+
+---
+
+## 🔐 Authentification
+
+L’API utilise l’authentification **JWT**.
+
+- **Connexion** : `POST /connexion`
+  - Body : `{ "email": "...", "password": "..." }`
+  - Retour : `{ "token": "..." }`
+
+- **Accès aux ressources protégées** : `Authorization: Bearer <token>`
+
+---
+
+## 📚 Modèles principaux
+
+### 1. **User**
+
+- `id`
+- `email`
+- `password` (haché)
+- `pseudo`
+- `createdAt`
+- `updatedAt`
+
+### 2. **Theme**
+
+- `id`
+- `name` (ex. "Couple & Attentes", "Valeurs & Croyances")
+- `icon` (optionnel)
+- `colorCode` (ex. `#ec1380`)
+- `createdAt`
+- `cards` (OneToMany avec `Card`)
+
+### 3. **Card**
+
+- `id`
+- `theme` (ManyToOne avec `Theme`)
+- `questionText`
+- `difficultyLevel` (1 à 3)
+- `isBonus` (booléen)
+- `createdAt`
+
+### 4. **Session**
+
+- `id`
+- `user`
+- `startedAt`
+- `endedAt`
+- `mode` (rapide, classique, compétitif)
+
+### 5. **SessionCard**
+
+- `id`
+- `session` (ManyToOne avec `Session`)
+- `card` (ManyToOne avec `Card`)
+- `drawnAt`
+- `skipped`
+- `orderIndex`
+
+### 6. **Response**
+
+- `id`
+- `sessionCard`
+- `user`
+- `answerText`
+- `createdAt`
+
+---
+
+## 🧩 Endpoints principaux
+
+### 🔐 Gestion des utilisateurs
+
+- `GET /api/users` → Liste des utilisateurs
+- `POST /api/users` → Créer un utilisateur
+- `GET /api/users/{id}` → Détail d’un utilisateur
+
+### 🎴 Gestion des thèmes
+
+- `GET /api/themes` → Liste des thèmes
+- `POST /api/themes` → Créer un thème
+- `GET /api/themes/{id}` → Détail d’un thème
+
+### 🧩 Gestion des cartes
+
+- `GET /api/cards` → Liste des cartes
+- `POST /api/cards` → Créer une carte
+- `GET /api/cards/{id}` → Détail d’une carte
+
+### 🎲 Gestion des parties
+
+- `GET /api/sessions` → Liste des sessions
+- `POST /api/sessions` → Créer une session
+- `GET /api/sessions/{id}` → Détail d’une session
+
+### 📝 Gestion des réponses
+
+- `GET /api/responses` → Liste des réponses
+- `POST /api/responses` → Créer une réponse
+- `GET /api/responses/{id}` → Détail d’une réponse
+
+---
+
+## 🧪 Exemples d’utilisation
+
+### Récupérer une carte aléatoire
+
+```bash
+GET /api/cards
+Authorization: Bearer <token>
+```
+
+### Créer un utilisateur
+
+```bash
+POST /api/users
+Content-Type: application/ld+json
+
 {
-  "email": "admin@mail.com",
-  "password": "password123",
-  "role": "admin"
-}
-```
-
-**Response 201** : `{ "id": "uuid", "email": "admin@mail.com", "role": "admin" }`
-
----
-
-### `GET /users`
-
-➡️ Liste des utilisateurs internes.
-**Response 200** :
-
-```json
-[
-  { "id": "uuid1", "email": "super@mail.com", "role": "super_admin" },
-  { "id": "uuid2", "email": "admin@mail.com", "role": "admin" }
-]
-```
-
----
-
-### `DELETE /users/{id}`
-
-➡️ Supprimer un utilisateur.
-**Response 204** : No Content.
-
----
-
-## 📦 Composants
-
-### `GET /composants`
-
-➡️ Lister et filtrer les composants.
-**Exemple requête :**
-`/composants?type=flacon&origine.id=1&gamme.id=3&moq[gte]=500`
-
-**Response 200 :**
-
-```json
-[
-  {
-    "id": "uuid",
-    "nom": "Flacon Cylindrique 50ml",
-    "type": "flacon",
-    "contenance": 50,
-    "moq": 1000,
-    "disponibilite": "en_stock",
-    "reference_interne": "FLA-123",
-    "image_url": "/uploads/composants/flacon_50ml.png",
-    "origine": "/origines/1",
-    "fournisseur": "/fournisseurs/2",
-    "forme": "/formes/3",
-    "benchmark": "/benchmarks/1",
-    "gamme": "/gammes/4"
-  }
-]
-```
-
----
-
-### `POST /composants`
-
-➡️ Créer un composant.
-
-```json
-{
-  "nom": "Capot Carré Luxe",
-  "type": "capot",
-  "contenance": null,
-  "moq": 500,
-  "disponibilite": "sur_demande",
-  "reference_interne": "CAP-456",
-  "image_url": "/uploads/composants/capot_carre.png",
-  "origine": "/origines/2",
-  "fournisseur": "/fournisseurs/5",
-  "forme": "/formes/2",
-  "benchmark": "/benchmarks/2",
-  "gamme": "/gammes/3"
-}
-```
-
-**Response 201** : `{ "id": "uuid", ... }`
-
----
-
-### `PUT /composants/{id}`
-
-➡️ Modifier un composant existant.
-
----
-
-### `DELETE /composants/{id}`
-
-➡️ Supprimer un composant.
-**Response 204** : No Content.
-
----
-
-## 🌍 Référentiels (Origine, Fournisseur, Forme, Benchmark, Gamme)
-
-Chaque entité est exposée avec CRUD complet :
-
-* `GET /origines` – Liste
-* `POST /origines` – Ajouter
-* `PUT /origines/{id}` – Modifier
-* `DELETE /origines/{id}` – Supprimer
-
-Idem pour `/fournisseurs`, `/formes`, `/benchmarks`, `/gammes`.
-
-**Exemple : GET /gammes**
-
-```json
-[
-  { "id": "1", "nom": "mass market" },
-  { "id": "2", "nom": "prestige" }
-]
-```
-
----
-
-## 👓 Vues clients (interne)
-
-### `GET /vues_clients`
-
-➡️ Liste des vues créées.
-
-**Response 200** :
-
-```json
-[
-  {
-    "id": "uuid",
-    "nom": "Vue Dior Asie",
-    "lien_unique": "a1b2c3d4",
-    "date_creation": "2025-09-26T10:00:00Z"
-  }
-]
-```
-
----
-
-### `POST /vues_clients`
-
-➡️ Créer une vue et y associer des composants.
-
-```json
-{
-  "nom": "Vue Client Luxe",
-  "composants": [
-    { "id": "uuid-flacon", "ordre": 1 },
-    { "id": "uuid-capot", "ordre": 2 }
-  ]
-}
-```
-
-**Response 201** :
-
-```json
-{
-  "id": "uuid",
-  "nom": "Vue Client Luxe",
-  "lien_unique": "xyz123",
-  "date_creation": "2025-09-26T10:00:00Z",
-  "composants": [...]
+  "email": "test@example.com",
+  "plainPassword": "password123",
+  "pseudo": "TestUser"
 }
 ```
 
 ---
 
-### `GET /vues_clients/{id}`
+## 🚀 Installation
 
-➡️ Détails d’une vue + composants liés.
-
----
-
-### `DELETE /vues_clients/{id}`
-
-➡️ Supprimer/désactiver une vue.
-
----
-
-### `POST /vues_clients/{id}/duplicate`
-
-➡️ Dupliquer une vue avec ses composants.
+1. Clonez le dépôt.
+2. Installez les dépendances : `composer install`
+3. Configurez la base de données dans `.env`.
+4. Générez les clés JWT : `php bin/console lexik:jwt:generate-keypair`
+5. Créez la base de données : `php bin/console doctrine:database:create`
+6. Générez les migrations : `php bin/console doctrine:migrations:migrate`
+7. Chargez les fixtures : `php bin/console doctrine:fixtures:load`
+8. Lancez l’application : `symfony server:start`
 
 ---
 
-## 🔗 Accès client (public)
+## 🧪 Tests
 
-### `GET /views/{lien_unique}`
-
-➡️ Accès public client à sa vue filtrée.
-**Response 200** :
-
-```json
-{
-  "nom": "Vue Dior Asie",
-  "composants": [
-    {
-      "id": "uuid-flacon",
-      "nom": "Flacon Cylindrique 50ml",
-      "type": "flacon",
-      "image_url": "/uploads/composants/flacon.png"
-    },
-    {
-      "id": "uuid-capot",
-      "nom": "Capot Carré Luxe",
-      "type": "capot",
-      "image_url": "/uploads/composants/capot.png"
-    }
-  ]
-}
-```
+- Tests unitaires et d’intégration disponibles via PHPUnit.
+- Lancer les tests : `./bin/phpunit`
 
 ---
 
-# 📑 Notes techniques
+## 🧩 Extensions
 
-* Tous les endpoints internes → protégés par **JWT**.
-* Les liens clients (`/views/{lien_unique}`) → lecture seule, pas d’auth.
-* **Swagger** exposera la doc auto-générée à :
+L’API est conçue pour être **extensible** :
 
-  * `/docs` (interface Swagger UI)
-  * `/docs.json` (OpenAPI spec)
+- Ajouter des **thèmes personnalisés**
+- Créer des **packs de cartes**
+- Intégrer des **fonctionnalités additionnelles** (musique, ambiances, etc.)
 
 ---
+
+## 📱 Application mobile
+
+L’application Flutter associée permet de :
+
+- Consulter les cartes
+- Créer des parties
+- Sauvegarder les réponses
+- Visualiser un journal de couple
+- Gérer les paramètres
+
+---
+
+
