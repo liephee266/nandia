@@ -14,9 +14,10 @@ class CardRandomController extends AbstractController
     #[Route('/api/cards/random', name: 'api_cards_random', methods: ['GET'])]
     public function __invoke(Request $request, CardRepository $cardRepository, SerializerInterface $serializer): JsonResponse
     {
-        $themeId = $request->query->get('themeId') ? (int) $request->query->get('themeId') : null;
+        $themeId    = $request->query->get('themeId') ? (int) $request->query->get('themeId') : null;
+        $difficulty = $request->query->get('difficulty') ? (int) $request->query->get('difficulty') : null;
 
-        $card = $cardRepository->findRandom($themeId);
+        $card = $cardRepository->findRandomCard($themeId, null, $difficulty);
 
         if ($card === null) {
             return $this->json(['error' => 'Aucune carte disponible'], 404);

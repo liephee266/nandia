@@ -49,6 +49,13 @@ class Card
     #[Groups(['card:read', 'card:write'])]
     private bool $isBonus = false;
 
+    /**
+     * Type de carte : 'question' (simultané), 'challenge' ou 'ritual' (tour à tour).
+     */
+    #[ORM\Column(length: 20, options: ['default' => 'question'])]
+    #[Groups(['card:read', 'card:write'])]
+    private string $type = 'question';
+
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -104,6 +111,17 @@ class Card
     public function setIsBonus(bool $isBonus): self
     {
         $this->isBonus = $isBonus;
+        return $this;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function setType(string $type): self
+    {
+        $this->type = $type;
         return $this;
     }
 

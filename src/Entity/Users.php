@@ -24,7 +24,8 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
     operations: [
         new Get(),
         new GetCollection(),
-        new Patch(),
+        // Un utilisateur ne peut modifier que son propre compte
+        new Patch(security: "is_granted('ROLE_USER') and object == user"),
         // Un utilisateur peut supprimer uniquement son propre compte
         new Delete(security: "is_granted('ROLE_USER') and object == user"),
     ],
@@ -96,9 +97,27 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 128, nullable: true, unique: true)]
     private ?string $refreshToken = null;
 
-    /** Date d'expiration du refresh token (30 jours par défaut). */
+    /**
+     * Date d'expiration du refresh token (30 jours par défaut).
+     */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $refreshTokenExpiresAt = null;
+
+    /**
+     * Date à laquelle le refresh token a été révoqué (logout).
+     * Si ce champ est non null, le refresh token est considéré comme invalide
+     * même si sa date d'expiration n'est pas atteinte.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $refreshTokenRevokedAt = null;
+
+    /**
+     * Date d'émission du refresh token courant.
+     * Permet de détecter si un token a été révoqué APRÈS son émission
+     * (ce qui signifie qu'il doit être considéré comme invalide).
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $refreshTokenIssuedAt = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
@@ -127,8 +146,13 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRefreshTokenExpiresAt(): ?\DateTimeImmutable { return $this->refreshTokenExpiresAt; }
 
+    public function getRefreshTokenRevokedAt(): ?\DateTimeImmutable { return $this->refreshTokenRevokedAt; }
+
+    public function getRefreshTokenIssuedAt(): ?\DateTimeImmutable { return $this->refreshTokenIssuedAt; }
+
     /**
      * Génère un nouveau refresh token opaque (64 hex chars) valable 30 jours.
+     * Réinitialise la date de révocation.
      * Retourne le token en clair pour l'inclure dans la réponse de login.
      */
     public function generateRefreshToken(): string
@@ -136,21 +160,45 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
         $token = bin2hex(random_bytes(32)); // 64 chars hex
         $this->refreshToken         = $token;
         $this->refreshTokenExpiresAt = new \DateTimeImmutable('+30 days');
+        $this->refreshTokenIssuedAt  = new \DateTimeImmutable();
+        $this->refreshTokenRevokedAt = null; // réinitialise après un refresh réussi
         return $token;
     }
 
+    /**
+     * Vérifie si le refresh token est actuellement utilisable.
+     * Retourne false si :
+     *   - le token est null ou expiré
+     *   - le token a été révoqué APRÈS son émission (logout)
+     */
     public function isRefreshTokenValid(): bool
     {
         if ($this->refreshToken === null || $this->refreshTokenExpiresAt === null) {
             return false;
         }
-        return $this->refreshTokenExpiresAt > new \DateTimeImmutable();
+
+        // Token expiré
+        if ($this->refreshTokenExpiresAt < new \DateTimeImmutable()) {
+            return false;
+        }
+
+        // Token révoqué après son émission (logout explicite)
+        if ($this->refreshTokenRevokedAt !== null
+            && $this->refreshTokenIssuedAt !== null
+            && $this->refreshTokenRevokedAt > $this->refreshTokenIssuedAt) {
+            return false;
+        }
+
+        return true;
     }
 
+    /**
+     * Révoque le refresh token courant (appelé lors du logout).
+     * Le token reste en BDD jusqu'à expiration mais devient inutilisable.
+     */
     public function revokeRefreshToken(): void
     {
-        $this->refreshToken         = null;
-        $this->refreshTokenExpiresAt = null;
+        $this->refreshTokenRevokedAt = new \DateTimeImmutable();
     }
 
     // Getters et Setters...

@@ -1,0 +1,29 @@
+# config/packages/rate_limiter.yaml
+
+# Rate limiting pour les endpoints publics (anti brute-force)
+#
+# Installation requise :
+#   composer require symfony/rate-limiter
+#
+# Puis :
+#   php bin/console cache:clear
+
+framework:
+    rate_limiter:
+        # Limite de connexion : 5 tentatives par 15 minutes par IP
+        login:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '15 minutes'
+
+        # Limite d'inscription : 3 par heure par IP
+        register:
+            policy: 'sliding_window'
+            limit: 3
+            interval: '1 hour'
+
+        # Limite de refresh token : 10 par minute par user
+        token_refresh:
+            policy: 'fixed_window'
+            limit: 10
+            interval: '1 minute'

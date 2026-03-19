@@ -16,28 +16,33 @@ class SessionCardRepository extends ServiceEntityRepository
         parent::__construct($registry, SessionCard::class);
     }
 
-    //    /**
-    //     * @return Theme[] Returns an array of Theme objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('t.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Retourne la carte active (non révélée et non passée) d'une session.
+     * En mode couple, la "carte active" est la dernière carte tirée non encore révélée.
+     */
+    public function findActiveCardForSession(int $sessionId): ?SessionCard
+    {
+        return $this->createQueryBuilder('sc')
+            ->andWhere('sc.session = :sessionId')
+            ->andWhere('sc.skipped = false')
+            ->andWhere('sc.revealed = false')
+            ->setParameter('sessionId', $sessionId)
+            ->orderBy('sc.orderIndex', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 
-    //    public function findOneBySomeField($value): ?Theme
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /**
+     * Nombre total de cartes dans une session (révélées + en cours).
+     */
+    public function countForSession(int $sessionId): int
+    {
+        return (int) $this->createQueryBuilder('sc')
+            ->select('COUNT(sc.id)')
+            ->andWhere('sc.session = :sessionId')
+            ->setParameter('sessionId', $sessionId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

@@ -47,15 +47,44 @@ class Session
     #[Groups(['session:read', 'session:write'])]
     private ?\DateTimeImmutable $endedAt = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
+    /**
+     * Mode de jeu :
+     *  - solo          : un seul joueur (mode existant)
+     *  - couple_live   : deux partenaires en temps réel (polling)
+     *  - couple_relax  : deux partenaires asynchrones
+     *  - room          : session liée à une salle multi-couples
+     */
+    #[ORM\Column(length: 20, options: ['default' => 'solo'])]
     #[Groups(['session:read', 'session:write'])]
-    private ?string $mode = null;
+    private string $mode = 'solo';
 
     // Thème choisi au démarrage de la session (null = mode aléatoire toutes thèmes)
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     #[Groups(['session:read', 'session:write'])]
     private ?Theme $theme = null;
+
+    /** Couple associé (null en mode solo) */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['session:read', 'session:write'])]
+    private ?Couple $couple = null;
+
+    /** Salle associée (uniquement en mode room) */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['session:read', 'session:write'])]
+    private ?Room $room = null;
+
+    /** Nombre de cartes à jouer dans cette session (null = illimité) */
+    #[ORM\Column(type: 'integer', nullable: true)]
+    #[Groups(['session:read', 'session:write'])]
+    private ?int $cardCount = null;
+
+    /** Durée par carte en secondes (null = sans limite) */
+    #[ORM\Column(type: 'integer', nullable: true)]
+    #[Groups(['session:read', 'session:write'])]
+    private ?int $timerPerCard = null;
 
     #[ORM\OneToMany(mappedBy: 'session', targetEntity: SessionCard::class, cascade: ['persist'], orphanRemoval: true)]
     private Collection $sessionCards;
@@ -126,6 +155,18 @@ class Session
         $this->theme = $theme;
         return $this;
     }
+
+    public function getCouple(): ?Couple { return $this->couple; }
+    public function setCouple(?Couple $c): self { $this->couple = $c; return $this; }
+
+    public function getRoom(): ?Room { return $this->room; }
+    public function setRoom(?Room $r): self { $this->room = $r; return $this; }
+
+    public function getCardCount(): ?int { return $this->cardCount; }
+    public function setCardCount(?int $n): self { $this->cardCount = $n; return $this; }
+
+    public function getTimerPerCard(): ?int { return $this->timerPerCard; }
+    public function setTimerPerCard(?int $s): self { $this->timerPerCard = $s; return $this; }
 
     public function getSessionCards(): Collection
     {

@@ -2,32 +2,31 @@
 
 namespace App\Controller;
 
+use App\Entity\Users;
 use App\Repository\ResponseRepository;
-use App\Repository\UsersRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class JournalController extends AbstractController
 {
     /**
-     * Retourne les entrées de journal d'un utilisateur :
-     * liste des questions jouées avec leurs réponses éventuelles.
+     * Retourne les entrées de journal de l'utilisateur connecté.
+     * On utilise @CurrentUser plutôt qu'un userId en paramètre
+     * pour éviter qu'un utilisateur puisse consulter le journal d'un autre.
      */
-    #[Route('/api/journal/{userId}', name: 'api_journal', methods: ['GET'])]
+    #[Route('/api/journal/me', name: 'api_journal_me', methods: ['GET'])]
     public function __invoke(
-        int $userId,
+        #[CurrentUser] ?Users $currentUser,
         ResponseRepository $responseRepository,
-        UsersRepository $usersRepository
     ): JsonResponse {
-        $user = $usersRepository->find($userId);
-
-        if (!$user) {
-            return $this->json(['error' => 'Utilisateur introuvable'], 404);
+        if (!$currentUser) {
+            return $this->json(['error' => 'Non authentifié.'], 401);
         }
 
-        // Récupère toutes les réponses de l'utilisateur avec les données imbriquées
-        $responses = $responseRepository->findJournalForUser($userId);
+        // Récupère toutes les réponses de l'utilisateur connecté
+        $responses = $responseRepository->findJournalForUser($currentUser->getId());
 
         return $this->json($responses);
     }

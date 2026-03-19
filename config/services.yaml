@@ -30,3 +30,12 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # ── Rate Limiting ─────────────────────────────────────────────────────────
+    # Nécessite : composer require symfony/rate-limiter
+    # Les services limiter.login et limiter.register sont déclarés dans
+    # config/packages/rate_limiter.yaml (framework.rate_limiter).
+    App\EventSubscriber\RateLimitingSubscriber:
+        arguments:
+            $loginLimiter:    '@limiter.login'
+            $registerLimiter: '@limiter.register'
