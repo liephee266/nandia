@@ -77,6 +77,11 @@ class Room
     #[Groups(['room:read', 'room:write', 'room:patch'])]
     private ?int $timerPerCard = null;
 
+    /** Niveau de difficulté des cartes (1, 2 ou 3 — null = toutes) */
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[Groups(['room:read', 'room:write'])]
+    private ?int $difficulty = null;
+
     /** Thème joué (null = toutes thèmes mélangés) */
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -182,6 +187,9 @@ class Room
 
     public function getTimerPerCard(): ?int { return $this->timerPerCard; }
     public function setTimerPerCard(?int $s): self { $this->timerPerCard = $s; return $this; }
+
+    public function getDifficulty(): ?int { return $this->difficulty; }
+    public function setDifficulty(?int $d): self { $this->difficulty = $d; return $this; }
 
     public function getTheme(): ?Theme { return $this->theme; }
     public function setTheme(?Theme $t): self { $this->theme = $t; return $this; }

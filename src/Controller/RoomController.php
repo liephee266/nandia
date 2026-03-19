@@ -69,6 +69,13 @@ class RoomController extends AbstractController
             $room->setTimerPerCard((int) $data['timerPerCard']);
         }
 
+        if (!empty($data['difficulty'])) {
+            $difficulty = (int) $data['difficulty'];
+            if (in_array($difficulty, [1, 2, 3], true)) {
+                $room->setDifficulty($difficulty);
+            }
+        }
+
         if (!empty($data['themeId'])) {
             $theme = $this->em->find(\App\Entity\Theme::class, (int) $data['themeId']);
             if ($theme) $room->setTheme($theme);
@@ -418,9 +425,10 @@ class RoomController extends AbstractController
 
     private function drawCardForRoom(Room $room): ?Card
     {
-        $themeId   = $room->getTheme()?->getId();
-        $excludeId = $room->getCurrentCard()?->getId();
-        $card      = $this->cardRepo->findRandomCard($themeId, $excludeId);
+        $themeId    = $room->getTheme()?->getId();
+        $excludeId  = $room->getCurrentCard()?->getId();
+        $difficulty = $room->getDifficulty();
+        $card       = $this->cardRepo->findRandomCard($themeId, $excludeId, $difficulty);
 
         if (!$card) return null;
 
@@ -432,6 +440,12 @@ class RoomController extends AbstractController
         $sc->setSession($session);
         $sc->setCard($card);
         $sc->setOrderIndex($room->getCurrentCardIndex());
+
+        // Démarrer le timer si la salle a un timer configuré
+        if ($room->getTimerPerCard() !== null) {
+            $sc->startTimer($room->getTimerPerCard());
+        }
+
         $this->em->persist($sc);
 
         // Stocker la référence sur la salle

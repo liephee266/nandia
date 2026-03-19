@@ -47,8 +47,14 @@ class SessionCoupleController extends AbstractController
         #[CurrentUser] Users $user,
     ): JsonResponse {
         $couple = $this->coupleRepo->findActiveForUser($user);
-        if (!$couple) {
-            return $this->json(['error' => 'Vous devez avoir un partenaire actif pour démarrer une session couple.'], 403);
+        if ($couple !== null) {
+            return $this->json([
+                'error' => 'Vous avez déjà un couple actif.',
+                'couple' => [
+                    'id'     => $couple->getId(),
+                    'status' => $couple->getStatus(),
+                ],
+            ], 409);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
