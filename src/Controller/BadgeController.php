@@ -33,12 +33,7 @@ class BadgeController extends AbstractController
 
     /**
      * Retourne les badges de l'utilisateur connecté,
-     * avec 'earnedAt' pour ceux qui sont obtenus
-     * et earned=false pour les autres.
-     *
-     * Avant de retourner, on vérifie et attribue les badges en attente
-     * (mode "claim" — l'utilisateur "réclame" ses badges à chaque visite
-     * de la page, ce qui met à jour ses achievements).
+     * avec earned=true/false et earnedAt pour chaque badge disponible.
      */
     #[Route('/api/badges/me', name: 'api_badges_me', methods: ['GET'])]
     public function myBadges(
@@ -46,14 +41,6 @@ class BadgeController extends AbstractController
     ): JsonResponse {
         if (!$user) {
             return $this->json(['error' => 'Non authentifié.'], 401);
-        }
-
-        // Tentative d'attribution des badges en attente (silencieux)
-        try {
-            $this->badgeAssigner->checkAndAssign($user, 'session_completed');
-            $this->badgeAssigner->checkAndAssign($user, 'response_saved');
-        } catch (\Throwable) {
-            // Si le badging échoue (Bdd pas prête, etc.), on continue sans erreur
         }
 
         $allBadges    = $this->badgeAssigner->getAllBadges();

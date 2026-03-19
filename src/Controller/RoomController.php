@@ -322,9 +322,25 @@ class RoomController extends AbstractController
         $myParticipant->setCurrentAnswer($answerText);
         $myParticipant->setHasAnsweredCurrentCard(true);
 
-        // Vérifier si tous les participants ont répondu → phase 'voting'
+        // Vérifier si assez de participants restent pour continuer
+        $activeParticipants = $room->getParticipants()->toArray();
+        $count = count($activeParticipants);
+
+        // Abandonner la partie s'il ne reste qu'un seul couple
+        if ($count < 2) {
+            $room->setStatus(Room::STATUS_DONE);
+            $room->setEndedAt(new \DateTimeImmutable());
+            $this->em->flush();
+            return $this->json([
+                'error'  => 'Plus assez de participants — partie terminée.',
+                'status' => 'done',
+                'scores' => $this->buildScores($room),
+            ], 409);
+        }
+
+        // Vérifier si TOUS les participants actifs ont répondu
         $allAnswered = true;
-        foreach ($room->getParticipants() as $p) {
+        foreach ($activeParticipants as $p) {
             if (!$p->isHasAnsweredCurrentCard()) {
                 $allAnswered = false;
                 break;
@@ -354,11 +370,43 @@ class RoomController extends AbstractController
             return $this->json(['error' => 'Salle ou couple introuvable.'], 404);
         }
 
+        // Empêcher de quitter en cours de partie — solo ou multi.
+        // En cours de jeu, le joueur doit finir ou utiliser "abandonner la partie".
+        if ($room->getStatus() === Room::STATUS_PLAYING) {
+            return $this->json([
+                'error' => 'Vous ne pouvez pas quitter en cours de partie. Abandonnez la salle à la place.',
+            ], 409);
+        }
+
         foreach ($room->getParticipants() as $p) {
             if ($p->getCouple()?->getId() === $couple->getId()) {
                 $this->em->remove($p);
                 break;
             }
+        }
+
+        // Si l'hôte quitte en WAITING → transférer à un autre participant
+        if ($room->getStatus() === Room::STATUS_WAITING
+            && $room->getHostCouple()?->getId() === $couple->getId()
+        ) {
+            $remaining = $room->getParticipants()->toArray();
+            if (count($remaining) > 0) {
+                $room->setHostCouple($remaining[0]->getCouple());
+            }
+        }
+
+        // Si l'hôte quitte pendant la partie → fin de partie pour tout le monde
+        if ($room->getStatus() === Room::STATUS_PLAYING
+            && $room->getHostCouple()?->getId() === $couple->getId()
+        ) {
+            $room->setStatus(Room::STATUS_DONE);
+            $room->setEndedAt(new \DateTimeImmutable());
+            $this->em->flush();
+            return $this->json([
+                'message'  => 'L\'hôte a quitté — partie terminée.',
+                'status'   => 'done',
+                'scores'   => $this->buildScores($room),
+            ]);
         }
 
         $this->em->flush();
