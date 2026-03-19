@@ -5,6 +5,7 @@ namespace App\Entity;
 
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
 use App\Repository\SessionRepository;
@@ -19,7 +20,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post()
+        new Post(),
+        new Patch(),
     ],
     normalizationContext: ['groups' => ['session:read']],
     denormalizationContext: ['groups' => ['session:write']]
@@ -48,6 +50,12 @@ class Session
     #[ORM\Column(length: 50, nullable: true)]
     #[Groups(['session:read', 'session:write'])]
     private ?string $mode = null;
+
+    // Thème choisi au démarrage de la session (null = mode aléatoire toutes thèmes)
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    #[Groups(['session:read', 'session:write'])]
+    private ?Theme $theme = null;
 
     #[ORM\OneToMany(mappedBy: 'session', targetEntity: SessionCard::class, cascade: ['persist'], orphanRemoval: true)]
     private Collection $sessionCards;
@@ -105,6 +113,17 @@ class Session
     public function setMode(?string $mode): self
     {
         $this->mode = $mode;
+        return $this;
+    }
+
+    public function getTheme(): ?Theme
+    {
+        return $this->theme;
+    }
+
+    public function setTheme(?Theme $theme): self
+    {
+        $this->theme = $theme;
         return $this;
     }
 

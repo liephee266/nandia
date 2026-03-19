@@ -17,7 +17,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post()
+        // Création réservée aux admins
+        new Post(security: "is_granted('ROLE_ADMIN')"),
     ],
     normalizationContext: ['groups' => ['ritual:read']],
     denormalizationContext: ['groups' => ['ritual:write']]
@@ -27,20 +28,21 @@ class Ritual
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['ritual:read'])]
+    // theme:read : inclus dans la sérialisation d'un Theme (liste de rituels imbriqués)
+    #[Groups(['ritual:read', 'theme:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 200)]
     #[Assert\NotBlank]
-    #[Groups(['ritual:read', 'ritual:write'])]
+    #[Groups(['ritual:read', 'ritual:write', 'theme:read'])]
     private ?string $title = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
-    #[Groups(['ritual:read', 'ritual:write'])]
+    #[Groups(['ritual:read', 'ritual:write', 'theme:read'])]
     private ?string $description = null;
 
     #[ORM\Column(length: 20, nullable: true)]
-    #[Groups(['ritual:read', 'ritual:write'])]
+    #[Groups(['ritual:read', 'ritual:write', 'theme:read'])]
     private ?string $type = null; // enum: 'rituel', 'défi', 'pause', 'joker'
 
     #[ORM\ManyToOne(inversedBy: 'rituals')]

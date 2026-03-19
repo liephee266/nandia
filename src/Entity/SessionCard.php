@@ -5,6 +5,7 @@ namespace App\Entity;
 
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
@@ -16,7 +17,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post()
+        new Post(),
+            new Patch(denormalizationContext: ['groups' => ['session_card:patch']]),
     ],
     normalizationContext: ['groups' => ['session_card:read']],
     denormalizationContext: ['groups' => ['session_card:write']]
@@ -44,7 +46,7 @@ class SessionCard
     private ?\DateTimeImmutable $drawnAt = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
-    #[Groups(['session_card:read', 'session_card:write'])]
+    #[Groups(['session_card:read', 'session_card:write', 'session_card:patch'])]
     private bool $skipped = false;
 
     #[ORM\Column(type: 'integer', nullable: true)]

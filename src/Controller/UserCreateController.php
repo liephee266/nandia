@@ -27,6 +27,19 @@ class UserCreateController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
+        if (empty($data['email'])) {
+            return $this->json(['error' => 'L\'email est obligatoire.'], 400);
+        }
+
+        // Vérification unicité email avant toute tentative d'insertion
+        $existing = $this->entityManager
+            ->getRepository(Users::class)
+            ->findOneBy(['email' => $data['email']]);
+
+        if ($existing !== null) {
+            return $this->json(['error' => 'Un compte avec cet email existe déjà.'], 409);
+        }
+
         $user = new Users();
         $user->setEmail($data['email']);
         $user->setPseudo($data['pseudo'] ?? null);
@@ -38,11 +51,14 @@ class UserCreateController extends AbstractController
             );
         }
 
-        // Validation
+        // Validation des contraintes Symfony (@Assert)
         $errors = $this->validator->validate($user);
         if (count($errors) > 0) {
-            $errorsString = (string) $errors;
-            return $this->json(['errors' => $errorsString], 400);
+            $messages = [];
+            foreach ($errors as $error) {
+                $messages[] = $error->getMessage();
+            }
+            return $this->json(['error' => implode(', ', $messages)], 400);
         }
 
         $this->entityManager->persist($user);

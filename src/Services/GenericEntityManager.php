@@ -1,7 +1,7 @@
 <?php
 namespace App\Services;
 
-use App\Entity\User;
+use App\Entity\Users;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -50,7 +50,7 @@ class GenericEntityManager
         foreach ($data as $field => $value) {
             // Vérifie si le champ est mappé dans l'entité
             if ($metadata->hasField($field)) {
-                if ($field == "password" and $entity instanceof User) {
+                if ($field == "password" and $entity instanceof Users) {
                     $hashedPassword = $this->passwordHasher->hashPassword($entity, $data['password']);
                     $value = $hashedPassword;
                 }

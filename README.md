@@ -1,198 +1,343 @@
 # 🎲 API Nandia
 
-**Nandia** est une application mobile conçue pour **renforcer les liens affectifs** entre couples à travers des **échanges sincères et profonds**. L’application propose des **cartes de questions** organisées par **thèmes**, permettant de (re)découvrir l’autre, de partager des émotions, des fantasmes, des valeurs et des projets communs.
+**Nandia** est une application mobile conçue pour **renforcer les liens affectifs** entre couples à travers des **échanges sincères et profonds**. L'API expose les ressources nécessaires à l'application Flutter : cartes, thèmes, sessions de jeu, réponses et journal de couple.
 
 ---
 
-## 🧩 Objectifs de l’API
+## 🛠️ Stack technique
 
-L’API Nandia permet de :
-
-- Gérer les **utilisateurs** (inscription, connexion, profil).
-- Créer, lire, modifier et supprimer des **thèmes** et des **cartes de questions**.
-- Gérer les **parties** (sessions de jeu) et les **réponses** des utilisateurs.
-- Permettre la **personnalisation** (thèmes, musique, ambiance).
-- Sauvegarder un **journal de couple** (historique des réponses).
-- Gérer les **extensions** et **packs de cartes** (thématiques supplémentaires).
-
----
-
-## 🛠️ Technologies utilisées
-
-- **Backend** : Symfony 6 + API Platform
-- **Authentification** : JWT
+- **Framework** : Symfony 6 + API Platform 4
+- **Authentification** : JWT (LexikJWTAuthenticationBundle)
 - **Base de données** : PostgreSQL
 - **ORM** : Doctrine
-- **Frontend** : Flutter (application mobile)
+- **Sérialisation** : Symfony Serializer avec groupes
+- **Frontend** : Flutter (app mobile)
 
 ---
 
 ## 🔐 Authentification
 
-L’API utilise l’authentification **JWT**.
+### Connexion
 
-- **Connexion** : `POST /connexion`
-  - Body : `{ "email": "...", "password": "..." }`
-  - Retour : `{ "token": "..." }`
+```
+POST /api/v1/connexion
+Content-Type: application/json
 
-- **Accès aux ressources protégées** : `Authorization: Bearer <token>`
+{ "email": "...", "password": "..." }
+```
 
----
+Retourne `{ "token": "..." }`. À passer ensuite dans tous les appels protégés :
 
-## 📚 Modèles principaux
-
-### 1. **User**
-
-- `id`
-- `email`
-- `password` (haché)
-- `pseudo`
-- `createdAt`
-- `updatedAt`
-
-### 2. **Theme**
-
-- `id`
-- `name` (ex. "Couple & Attentes", "Valeurs & Croyances")
-- `icon` (optionnel)
-- `colorCode` (ex. `#ec1380`)
-- `createdAt`
-- `cards` (OneToMany avec `Card`)
-
-### 3. **Card**
-
-- `id`
-- `theme` (ManyToOne avec `Theme`)
-- `questionText`
-- `difficultyLevel` (1 à 3)
-- `isBonus` (booléen)
-- `createdAt`
-
-### 4. **Session**
-
-- `id`
-- `user`
-- `startedAt`
-- `endedAt`
-- `mode` (rapide, classique, compétitif)
-
-### 5. **SessionCard**
-
-- `id`
-- `session` (ManyToOne avec `Session`)
-- `card` (ManyToOne avec `Card`)
-- `drawnAt`
-- `skipped`
-- `orderIndex`
-
-### 6. **Response**
-
-- `id`
-- `sessionCard`
-- `user`
-- `answerText`
-- `createdAt`
-
----
-
-## 🧩 Endpoints principaux
-
-### 🔐 Gestion des utilisateurs
-
-- `GET /api/users` → Liste des utilisateurs
-- `POST /api/users` → Créer un utilisateur
-- `GET /api/users/{id}` → Détail d’un utilisateur
-
-### 🎴 Gestion des thèmes
-
-- `GET /api/themes` → Liste des thèmes
-- `POST /api/themes` → Créer un thème
-- `GET /api/themes/{id}` → Détail d’un thème
-
-### 🧩 Gestion des cartes
-
-- `GET /api/cards` → Liste des cartes
-- `POST /api/cards` → Créer une carte
-- `GET /api/cards/{id}` → Détail d’une carte
-
-### 🎲 Gestion des parties
-
-- `GET /api/sessions` → Liste des sessions
-- `POST /api/sessions` → Créer une session
-- `GET /api/sessions/{id}` → Détail d’une session
-
-### 📝 Gestion des réponses
-
-- `GET /api/responses` → Liste des réponses
-- `POST /api/responses` → Créer une réponse
-- `GET /api/responses/{id}` → Détail d’une réponse
-
----
-
-## 🧪 Exemples d’utilisation
-
-### Récupérer une carte aléatoire
-
-```bash
-GET /api/cards
+```
 Authorization: Bearer <token>
 ```
 
-### Créer un utilisateur
+### Inscription
 
-```bash
+```
 POST /api/users
 Content-Type: application/ld+json
 
+{ "email": "...", "plainPassword": "...", "pseudo": "..." }
+```
+
+Route publique gérée par `UserCreateController` (hachage du mot de passe intégré).
+
+### Négociation de format
+
+L'API Platform répond en JSON-LD par défaut. Pour obtenir du JSON simple avec la clé `member` sur les collections, passer **toujours** :
+
+```
+Accept: application/json
+```
+
+---
+
+## 👤 Rôles
+
+| Rôle | Description |
+|---|---|
+| `ROLE_USER` | Attribué à tous les utilisateurs. Lecture seule sur cartes/thèmes/rituels/packs. |
+| `ROLE_ADMIN` | Requis pour créer ou modifier du contenu (cartes, thèmes, packs, rituels). |
+
+Pour promouvoir un utilisateur en admin :
+
+```sql
+UPDATE users SET roles = '["ROLE_ADMIN"]' WHERE id = <id>;
+```
+
+---
+
+## 📚 Modèles
+
+### Users
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | Auto |
+| `email` | string | Unique, identifiant JWT |
+| `password` | string | Haché (bcrypt) |
+| `roles` | json | `[]` par défaut → `ROLE_USER` garanti ; `["ROLE_ADMIN"]` pour les admins |
+| `pseudo` | string? | Nom d'affichage |
+| `prenom`, `nom` | string? | |
+| `dateNaissance` | date? | |
+| `telephone` | string? | |
+| `sexe` | string? | |
+| `situationAmoureuse` | string? | |
+| `biographie` | text? | |
+| `profileImage` | string? | URL ou chemin |
+| `createdAt` | datetime | |
+| `updatedAt` | datetime? | |
+
+### Theme
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | |
+| `name` | string | |
+| `description` | text? | |
+| `size` | string? | `1x1` (défaut), `2x1`, `1x2` — utilisé pour le layout de la grille dans l'app |
+| `colorCode` | string? | Hex `#RRGGBB` |
+| `icon` | string? | Nom d'icône |
+| `backgroundImage` | text? | |
+
+### Card
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | |
+| `theme` | Theme | ManyToOne |
+| `questionText` | text | |
+| `difficultyLevel` | smallint? | 1–3 |
+| `isBonus` | bool | `false` par défaut |
+| `createdAt` | datetime | |
+
+### Session
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | |
+| `user` | Users | ManyToOne |
+| `theme` | Theme? | ManyToOne nullable — `null` = mode aléatoire toutes thèmes |
+| `mode` | string? | `'random'` ou `'theme'` |
+| `startedAt` | datetime | Auto |
+| `endedAt` | datetime? | Renseigné à la fermeture de session |
+
+### SessionCard
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | |
+| `session` | Session | ManyToOne |
+| `card` | Card | ManyToOne |
+| `drawnAt` | datetime | Auto |
+| `orderIndex` | int? | Position dans la session |
+| `skipped` | bool | `false` par défaut ; `true` si joker utilisé — patchable via `PATCH /api/session_cards/{id}` |
+
+### Response
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | |
+| `sessionCard` | SessionCard | ManyToOne |
+| `user` | Users | ManyToOne |
+| `answerText` | text? | Réponse libre |
+| `createdAt` | datetime | |
+
+### Ritual
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | |
+| `title` | string | |
+| `description` | text? | |
+| `type` | string? | `'rituel'`, `'défi'`, `'pause'`, `'joker'` |
+| `theme` | Theme? | ManyToOne |
+
+### Pack
+
+| Champ | Type | Notes |
+|---|---|---|
+| `id` | int | |
+| `name` | string | |
+| `description` | text? | |
+| `price` | decimal? | Prix en euros |
+
+---
+
+## 🧩 Endpoints
+
+### Utilisateurs
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/users` | Public | Inscription |
+| `GET` | `/api/users` | `ROLE_USER` | Liste |
+| `GET` | `/api/users/{id}` | `ROLE_USER` | Profil |
+| `PATCH` | `/api/users/{id}` | `ROLE_USER` | Mise à jour profil (`application/merge-patch+json`) |
+
+### Thèmes
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/themes` | `ROLE_USER` | Liste des thèmes |
+| `GET` | `/api/themes/{id}` | `ROLE_USER` | Détail |
+| `POST` | `/api/themes` | `ROLE_ADMIN` | Créer un thème |
+
+### Cartes
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/cards` | `ROLE_USER` | Liste des cartes |
+| `GET` | `/api/cards/{id}` | `ROLE_USER` | Détail |
+| `GET` | `/api/cards/random` | `ROLE_USER` | Carte aléatoire (param optionnel `?themeId=`) |
+| `POST` | `/api/cards` | `ROLE_ADMIN` | Créer une carte |
+
+### Sessions
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/sessions` | `ROLE_USER` | Créer une session |
+| `GET` | `/api/sessions/{id}` | `ROLE_USER` | Détail |
+| `PATCH` | `/api/sessions/{id}` | `ROLE_USER` | Fermer une session (`endedAt`) |
+
+**Exemple — créer une session avec thème :**
+
+```json
+POST /api/sessions
+Content-Type: application/ld+json
+Accept: application/json
+
 {
-  "email": "test@example.com",
-  "plainPassword": "password123",
-  "pseudo": "TestUser"
+  "user": "/api/users/1",
+  "mode": "theme",
+  "theme": "/api/themes/3"
 }
 ```
+
+**Exemple — créer une session aléatoire :**
+
+```json
+{
+  "user": "/api/users/1",
+  "mode": "random"
+}
+```
+
+### SessionCards
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/session_cards` | `ROLE_USER` | Enregistrer une carte piochée |
+| `GET` | `/api/session_cards/{id}` | `ROLE_USER` | Détail |
+| `PATCH` | `/api/session_cards/{id}` | `ROLE_USER` | Marquer comme skippée (joker) |
+
+**Exemple — joker :**
+
+```json
+PATCH /api/session_cards/42
+Content-Type: application/merge-patch+json
+Accept: application/json
+
+{ "skipped": true }
+```
+
+### Réponses
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/responses` | `ROLE_USER` | Enregistrer une réponse |
+| `GET` | `/api/responses/{id}` | `ROLE_USER` | Détail |
+
+**Exemple :**
+
+```json
+POST /api/responses
+Content-Type: application/ld+json
+Accept: application/json
+
+{
+  "sessionCard": "/api/session_cards/42",
+  "user": "/api/users/1",
+  "answerText": "Ma réponse..."
+}
+```
+
+### Journal
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/journal/{userId}` | `ROLE_USER` | Historique des réponses de l'utilisateur |
+
+Retourne un tableau JSON :
+
+```json
+[
+  {
+    "id": 1,
+    "questionText": "...",
+    "answerText": "...",
+    "themeName": "Couple",
+    "themeColor": "#EC1380",
+    "createdAt": "2026-03-19T10:00:00+00:00"
+  }
+]
+```
+
+### Rituels & Packs
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/rituals` | `ROLE_USER` | Liste |
+| `POST` | `/api/rituals` | `ROLE_ADMIN` | Créer |
+| `GET` | `/api/packs` | `ROLE_USER` | Liste |
+| `POST` | `/api/packs` | `ROLE_ADMIN` | Créer |
 
 ---
 
 ## 🚀 Installation
 
-1. Clonez le dépôt.
-2. Installez les dépendances : `composer install`
-3. Configurez la base de données dans `.env`.
-4. Générez les clés JWT : `php bin/console lexik:jwt:generate-keypair`
-5. Créez la base de données : `php bin/console doctrine:database:create`
-6. Générez les migrations : `php bin/console doctrine:migrations:migrate`
-7. Chargez les fixtures : `php bin/console doctrine:fixtures:load`
-8. Lancez l’application : `symfony server:start`
+```bash
+# 1. Dépendances
+composer install
+
+# 2. Variables d'environnement
+cp .env .env.local
+# Éditer DATABASE_URL, JWT_SECRET_KEY, etc.
+
+# 3. Clés JWT
+php bin/console lexik:jwt:generate-keypair
+
+# 4. Base de données + migrations
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
+
+# 5. Fixtures (données de démonstration)
+php bin/console doctrine:fixtures:load
+
+# 6. Serveur
+symfony server:start
+# ou via Docker :
+docker compose up -d
+```
 
 ---
 
-## 🧪 Tests
+## 🗄️ Migrations
 
-- Tests unitaires et d’intégration disponibles via PHPUnit.
-- Lancer les tests : `./bin/phpunit`
-
----
-
-## 🧩 Extensions
-
-L’API est conçue pour être **extensible** :
-
-- Ajouter des **thèmes personnalisés**
-- Créer des **packs de cartes**
-- Intégrer des **fonctionnalités additionnelles** (musique, ambiances, etc.)
+| Version | Description |
+|---|---|
+| `Version20250927024409` | Schéma initial |
+| `Version20250927031751` | Ajout colonnes de base |
+| `Version20260318000001` | Structure de session et cartes |
+| `Version20260318000002` | Profil utilisateur complet (prenom, nom, date_naissance…) |
+| `Version20260319000001` | **Colonne `roles` (JSON) sur `users` + FK `theme_id` sur `session`** |
 
 ---
 
-## 📱 Application mobile
+## 🔒 Sécurité — points clés
 
-L’application Flutter associée permet de :
-
-- Consulter les cartes
-- Créer des parties
-- Sauvegarder les réponses
-- Visualiser un journal de couple
-- Gérer les paramètres
-
----
-
-
+- Les routes publiques sont uniquement `/api/v1/connexion` et `POST /api/users`.
+- Toutes les autres routes requièrent un JWT valide (`IS_AUTHENTICATED_FULLY`).
+- La création de contenu (cartes, thèmes, packs, rituels) est réservée à `ROLE_ADMIN`.
+- Le PATCH sur les utilisateurs n'est pas restreint à l'utilisateur lui-même — à sécuriser si nécessaire en prod.

@@ -3,8 +3,10 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\UsersRepository;
 use ApiPlatform\Metadata\ApiResource;
@@ -22,7 +24,9 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
     operations: [
         new Get(),
         new GetCollection(),
-        // new Post()
+        new Patch(),
+        // Un utilisateur peut supprimer uniquement son propre compte
+        new Delete(security: "is_granted('ROLE_USER') and object == user"),
     ],
     normalizationContext: ['groups' => ['user:read']],
     denormalizationContext: ['groups' => ['user:write']]
@@ -44,13 +48,57 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     private ?string $password = null;
 
-    #[ORM\Column(type: 'text', nullable: true)]
+    // Champ non-mappé (pas de colonne BDD) — utilisé uniquement pendant la requête
     #[Groups(['user:write'])]
     private ?string $plainPassword = null;
 
     #[ORM\Column(length: 100, nullable: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $pseudo = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $prenom = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $nom = null;
+
+    #[ORM\Column(type: 'date', nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?\DateTimeInterface $dateNaissance = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $telephone = null;
+
+    #[ORM\Column(length: 30, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $sexe = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $situationAmoureuse = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $biographie = null;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $profileImage = null;
+
+    // Stocke les rôles additionnels (ex: ['ROLE_ADMIN']). ROLE_USER est toujours ajouté dynamiquement.
+    #[ORM\Column(type: 'json', options: ['default' => '[]'])]
+    private array $roles = [];
+
+    /** Token de rafraîchissement JWT (opaque, 64 hex chars). */
+    #[ORM\Column(length: 128, nullable: true, unique: true)]
+    private ?string $refreshToken = null;
+
+    /** Date d'expiration du refresh token (30 jours par défaut). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $refreshTokenExpiresAt = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
@@ -71,6 +119,38 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
         $this->sessions = new ArrayCollection();
         $this->responses = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
+    }
+
+    // ── Refresh Token ─────────────────────────────────────────────────────────
+
+    public function getRefreshToken(): ?string { return $this->refreshToken; }
+
+    public function getRefreshTokenExpiresAt(): ?\DateTimeImmutable { return $this->refreshTokenExpiresAt; }
+
+    /**
+     * Génère un nouveau refresh token opaque (64 hex chars) valable 30 jours.
+     * Retourne le token en clair pour l'inclure dans la réponse de login.
+     */
+    public function generateRefreshToken(): string
+    {
+        $token = bin2hex(random_bytes(32)); // 64 chars hex
+        $this->refreshToken         = $token;
+        $this->refreshTokenExpiresAt = new \DateTimeImmutable('+30 days');
+        return $token;
+    }
+
+    public function isRefreshTokenValid(): bool
+    {
+        if ($this->refreshToken === null || $this->refreshTokenExpiresAt === null) {
+            return false;
+        }
+        return $this->refreshTokenExpiresAt > new \DateTimeImmutable();
+    }
+
+    public function revokeRefreshToken(): void
+    {
+        $this->refreshToken         = null;
+        $this->refreshTokenExpiresAt = null;
     }
 
     // Getters et Setters...
@@ -123,6 +203,30 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getPrenom(): ?string { return $this->prenom; }
+    public function setPrenom(?string $prenom): self { $this->prenom = $prenom; return $this; }
+
+    public function getNom(): ?string { return $this->nom; }
+    public function setNom(?string $nom): self { $this->nom = $nom; return $this; }
+
+    public function getDateNaissance(): ?\DateTimeInterface { return $this->dateNaissance; }
+    public function setDateNaissance(?\DateTimeInterface $dateNaissance): self { $this->dateNaissance = $dateNaissance; return $this; }
+
+    public function getTelephone(): ?string { return $this->telephone; }
+    public function setTelephone(?string $telephone): self { $this->telephone = $telephone; return $this; }
+
+    public function getSexe(): ?string { return $this->sexe; }
+    public function setSexe(?string $sexe): self { $this->sexe = $sexe; return $this; }
+
+    public function getSituationAmoureuse(): ?string { return $this->situationAmoureuse; }
+    public function setSituationAmoureuse(?string $situationAmoureuse): self { $this->situationAmoureuse = $situationAmoureuse; return $this; }
+
+    public function getBiographie(): ?string { return $this->biographie; }
+    public function setBiographie(?string $biographie): self { $this->biographie = $biographie; return $this; }
+
+    public function getProfileImage(): ?string { return $this->profileImage; }
+    public function setProfileImage(?string $profileImage): self { $this->profileImage = $profileImage; return $this; }
+
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;
@@ -156,12 +260,21 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        return ['ROLE_USER']; // ou ROLE_ADMIN selon vos besoins
+        // ROLE_USER est toujours garanti ; les rôles additionnels (ex: ROLE_ADMIN) viennent de la BDD
+        $roles = $this->roles;
+        $roles[] = 'ROLE_USER';
+        return array_unique($roles);
+    }
+
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+        return $this;
     }
 
     public function eraseCredentials(): void
     {
-        // Si vous stockez temporairement un mot de passe non haché
+        $this->plainPassword = null;
     }
 
     public function getUsername(): string

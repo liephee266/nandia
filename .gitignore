@@ -50,3 +50,11 @@
 
 # Embedded web-server pid file
 /.web-server-pid
+
+# Clés JWT — NE JAMAIS committer ces fichiers
+/config/jwt/private.pem
+/config/jwt/public.pem
+
+# Variables d'environnement locales (sensibles)
+.env.local
+.env.*.local

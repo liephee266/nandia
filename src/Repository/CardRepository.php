@@ -16,28 +16,28 @@ class CardRepository extends ServiceEntityRepository
         parent::__construct($registry, Card::class);
     }
 
-    //    /**
-    //     * @return Theme[] Returns an array of Theme objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('t.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Retourne une carte aléatoire, optionnellement filtrée par thème.
+     */
+    public function findRandom(?int $themeId = null): ?Card
+    {
+        $qb = $this->createQueryBuilder('c');
 
-    //    public function findOneBySomeField($value): ?Theme
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        if ($themeId !== null) {
+            $qb->andWhere('c.theme = :themeId')
+               ->setParameter('themeId', $themeId);
+        }
+
+        $ids = $qb->select('c.id')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        if (empty($ids)) {
+            return null;
+        }
+
+        $randomId = $ids[array_rand($ids)];
+
+        return $this->find($randomId);
+    }
 }

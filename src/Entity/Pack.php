@@ -19,7 +19,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post()
+        // Création réservée aux admins
+        new Post(security: "is_granted('ROLE_ADMIN')"),
     ],
     normalizationContext: ['groups' => ['pack:read']],
     denormalizationContext: ['groups' => ['pack:write']]

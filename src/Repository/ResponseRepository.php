@@ -16,28 +16,33 @@ class ResponseRepository extends ServiceEntityRepository
         parent::__construct($registry, Response::class);
     }
 
-    //    /**
-    //     * @return Theme[] Returns an array of Theme objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('t.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * Retourne les entrées de journal pour un utilisateur :
+     * question, réponse éventuelle, date, thème.
+     */
+    public function findJournalForUser(int $userId): array
+    {
+        $results = $this->createQueryBuilder('r')
+            ->leftJoin('r.sessionCard', 'sc')
+            ->leftJoin('sc.card', 'c')
+            ->leftJoin('c.theme', 't')
+            ->join('r.user', 'u')
+            ->where('u.id = :userId')
+            ->setParameter('userId', $userId)
+            ->orderBy('r.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
 
-    //    public function findOneBySomeField($value): ?Theme
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        return array_map(function (Response $r) {
+            $card = $r->getSessionCard()?->getCard();
+            return [
+                'id'           => $r->getId(),
+                'questionText' => $card?->getQuestionText(),
+                'answerText'   => $r->getAnswerText(),
+                'themeName'    => $card?->getTheme()?->getName(),
+                'themeColor'   => $card?->getTheme()?->getColorCode(),
+                'createdAt'    => $r->getCreatedAt()?->format(\DateTimeInterface::ATOM),
+            ];
+        }, $results);
+    }
 }

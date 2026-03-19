@@ -17,7 +17,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post()
+        // Création réservée aux admins — les utilisateurs ne peuvent que lire les cartes
+        new Post(security: "is_granted('ROLE_ADMIN')"),
     ],
     normalizationContext: ['groups' => ['card:read']],
     denormalizationContext: ['groups' => ['card:write']]

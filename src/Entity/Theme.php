@@ -19,7 +19,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
-        new Post()
+        // Création et modification réservées aux admins
+        new Post(security: "is_granted('ROLE_ADMIN')"),
     ],
     normalizationContext: ['groups' => ['theme:read']],
     denormalizationContext: ['groups' => ['theme:write']]
@@ -64,6 +65,10 @@ class Theme
     private Collection $cards;
 
     #[ORM\OneToMany(mappedBy: 'theme', targetEntity: Ritual::class)]
+    // Inclus dans theme:read ; chaque Ritual est sérialisé avec les champs
+    // tagués theme:read dans Ritual.php (id, title, description, type)
+    // — le back-reference Ritual→Theme n'est pas tagué theme:read → pas de boucle circulaire
+    #[Groups(['theme:read'])]
     private Collection $rituals;
 
     public function __construct()
