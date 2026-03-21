@@ -1,0 +1,9 @@
+# config/packages/mercure.yaml
+# The MercureBundle auto-registers HubInterface for injection.
+# MERCURE_JWT_SECRET and MERCURE_PUBLIC_URL must be set in .env.local
+
+mercure:
+    hubs:
+        default:
+            url: '%env(MERCURE_PUBLIC_URL)%/.well-known/mercure'
+            jwt: '%env(MERCURE_JWT_SECRET)%'

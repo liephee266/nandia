@@ -27,3 +27,9 @@ framework:
             policy: 'fixed_window'
             limit: 10
             interval: '1 minute'
+
+        # Limite de demande de reset mot de passe : 5 par 15 min par IP
+        password_reset:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '15 minutes'

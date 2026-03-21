@@ -10,14 +10,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/api', name: 'api_')]
 class UserImageController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private SluggerInterface $slugger,
     ) {}
 
     /**
@@ -47,7 +45,13 @@ class UserImageController extends AbstractController
         }
 
         $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        if (!in_array($file->getMimeType(), $allowedMimeTypes)) {
+
+        // Vérification du type MIME réel via finfo (inspecte les magic bytes du fichier,
+        // pas l'extension ni l'en-tête Content-Type déclaré par le client).
+        $finfo    = new \finfo(FILEINFO_MIME_TYPE);
+        $realMime = $finfo->file($file->getPathname());
+
+        if (!in_array($realMime, $allowedMimeTypes, true)) {
             return $this->json(['error' => 'Type de fichier non autorisé. Utilisez JPG, PNG, WebP ou GIF.'], 400);
         }
 
@@ -55,10 +59,31 @@ class UserImageController extends AbstractController
             return $this->json(['error' => 'Le fichier ne doit pas dépasser 5 Mo.'], 400);
         }
 
-        // Générer un nom de fichier unique
-        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = $this->slugger->slug($originalFilename);
-        $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
+        // Valider les dimensions de l'image (éviter les images 4K+ qui causent des problèmes mobile)
+        $imageInfo = @getimagesize($file->getPathname());
+        if ($imageInfo === false) {
+            return $this->json(['error' => 'Fichier image invalide.'], 400);
+        }
+        $width  = $imageInfo[0];
+        $height = $imageInfo[1];
+        $maxDim = 2048;
+        if ($width > $maxDim || $height > $maxDim) {
+            return $this->json([
+                'error' => "L'image ne doit pas dépasser {$maxDim}px de côté. Taille reçue : {$width}×{$height}px.",
+            ], 400);
+        }
+
+        // Déduire l'extension depuis le MIME réel (pas depuis le nom client)
+        $mimeToExt = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            'image/gif'  => 'gif',
+        ];
+        $extension = $mimeToExt[$realMime];
+
+        // Générer un nom de fichier unique basé sur un identifiant aléatoire (pas sur le nom client)
+        $newFilename = bin2hex(random_bytes(16)) . '.' . $extension;
 
         // Dossier de destination : public/uploads/profiles/
         $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/profiles';

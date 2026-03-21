@@ -11,6 +11,7 @@ use App\Repository\CardVoteRepository;
 use App\Repository\CoupleRepository;
 use App\Repository\RoomParticipantRepository;
 use App\Repository\SessionCardRepository;
+use App\Service\RoomStatePublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,6 +41,7 @@ class VoteController extends AbstractController
         private readonly CardVoteRepository        $voteRepo,
         private readonly SessionCardRepository     $sessionCardRepo,
         private readonly RoomParticipantRepository $participantRepo,
+        private readonly RoomStatePublisher        $roomPublisher,
     ) {}
 
     // ── POST /api/vote ──────────────────────────────────────────────────────
@@ -91,6 +93,11 @@ class VoteController extends AbstractController
             return $this->json(['error' => 'Accès refusé.'], 403);
         }
 
+        // Vérifier que le couple cible est dans la salle
+        if (!$room->hasCouple($targetCouple)) {
+            return $this->json(['error' => ' Couple cible non présent dans cette salle.'], 400);
+        }
+
         // Un seul vote par couple par carte
         $existing = $this->voteRepo->findOneBy([
             'sessionCard'  => $sessionCard,
@@ -126,6 +133,11 @@ class VoteController extends AbstractController
             $room->setCardPhase('revealed');
             $sessionCard->setRevealed(true);
             $this->em->flush();
+            $this->roomPublisher->publishRoomEvent($room, 'cards_revealed', [
+                'sessionCardId' => $sessionCard->getId(),
+            ]);
+        } else {
+            $this->roomPublisher->publishRoomUpdate($room, 'vote_recorded');
         }
 
         return $this->json([

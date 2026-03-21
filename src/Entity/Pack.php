@@ -1,5 +1,11 @@
 <?php
+
 // src/Entity/Pack.php
+//
+// ⚠️ MONÉTISATION EN ATTENTE — Purchase flow non implémenté.
+// Le Pack est exposé en lecture (GET /api/packs) pour affichage dans l'app.
+// Aucun achat, aucun paiement, aucune attribution de cartes.
+// à implémenter un jour : Stripe (backend) + In-App Purchase (mobile)
 
 namespace App\Entity;
 
@@ -19,6 +25,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(),
         new GetCollection(),
+        // TODO(monetization): POST /api/packs/buy — après intégration Stripe
         // Création réservée aux admins
         new Post(security: "is_granted('ROLE_ADMIN')"),
     ],
@@ -54,7 +61,6 @@ class Pack
         $this->createdAt = new \DateTimeImmutable();
     }
 
-    // Getters et Setters...
     public function getId(): ?int
     {
         return $this->id;

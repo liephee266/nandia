@@ -46,6 +46,7 @@ class BadgeSessionSubscriber
         // Attribuer les badges de session (silencieux — aucune erreur si rien de nouveau)
         try {
             $this->badgeAssigner->checkAndAssign($user, 'session_completed');
+            $this->badgeAssigner->checkStreak($user);
         } catch (\Throwable) {
             // On ne bloque pas le flux pour un échec de badging
         }

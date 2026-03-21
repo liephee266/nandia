@@ -4,26 +4,51 @@ namespace App\EventSubscriber;
 
 use App\Entity\Room;
 use App\Entity\SessionCard;
-use Doctrine\Bundle\DoctrineBundle\Attribute\AsEntityListener;
-use Doctrine\ORM\Event\PostUpdateEventArgs;
-use Doctrine\ORM\Event\PreUpdateEventArgs;
-use Doctrine\ORM\Events;
-use Doctrine\Persistence\Event\LifecycleEventArgs;
 
 /**
- * RoomAnswerSubscriber — Force l'expiration du timer pour une SessionCard.
+ * RoomAnswerSubscriber — Placeholder pour expiration asynchrone des timers.
  *
- * Quand `startTimer()` est appelé sur une SessionCard, ce subscriber
- * planifie un Event qui rejette les réponses après expiration.
+ * Explication : la vérification du timer est actuellement faite
+ * **synhchronement** dans `RoomController::answer()` via
+ * `SessionCard::isTimerExpired()`.
  *
- * Note : en l'absence de messenger/async queue, on fait une vérification
- * synchrone dans le contrôleur RoomController::answer().
- * Ce subscriber prépare le terrain pour une implémentation asynchrone.
+ * Ce subscriber existe en préparation d'une migration vers
+ * Symfony Messenger (async) pour les raisons suivantes :
+ *
+ *  - Éliminer la race condition si un client envoie pile au moment de l'expiration
+ *  - Décharger le thread HTTP principal (important en room avec beaucoup de participants)
+ *  - Permettre un vrai "scheduled job" pour les expirations
+ *
+ * USAGE FUTUR ( Messenger ) :
+ *   - Créer un message : RoomCardTimerExpired(roomId, sessionCardId)
+ *   - Dans ce subscriber : dispatcher ce message au bus Messenger
+ *   - Un handler async traiterait le changement de phase + notification
+ *
+ * En attendant, la logique synchrone dans RoomController::answer()
+ * reste correcte et safe.
  */
 class RoomAnswerSubscriber
 {
-    // Rien à faire en sync — la vérification est dans RoomController::answer()
-    // Ce subscriber existe pour :
-    //   1. Logger les expirations pour le monitoring
-    //   2. Permettre une migration future vers du async (Messenger)
+    // ─── Étape 1 : remplacer par un Message + Handler Messenger ───────────
+    //
+    // Message :
+    // class RoomCardTimerExpired
+    // {
+    //     public function __construct(public readonly int $roomId,
+    //                                 public readonly int $sessionCardId) {}
+    // }
+    //
+    // Handler (async) :
+    // #[AsMessageHandler]
+    // class RoomCardTimerExpiredHandler
+    // {
+    //     public function __invoke(RoomCardTimerExpired $cmd,
+    //                              EntityManagerInterface $em,
+    //                              RoomRepository $roomRepo) { ... }
+    // }
+    //
+    // ─── Étape 2 : modifier SessionCard::startTimer() ─────────────────────
+    // Au lieu de définir timerExpiresAt directement :
+    //   $dispatcher->dispatch(new RoomCardTimerExpired($roomId, $cardId));
+    // Et laisser le handler définir le timer + changer la phase.
 }

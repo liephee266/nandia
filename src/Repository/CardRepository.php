@@ -35,6 +35,7 @@ class CardRepository extends ServiceEntityRepository
     public function findRandomCard(
         ?int $themeId = null,
         ?int $excludeId = null,
+        ?array $excludeIds = null,
         ?int $difficulty = null,
     ): ?Card {
         $qb = $this->createQueryBuilder('c');
@@ -49,29 +50,51 @@ class CardRepository extends ServiceEntityRepository
                ->setParameter('excludeId', $excludeId);
         }
 
+        if ($excludeIds !== null && count($excludeIds) > 0) {
+            $qb->andWhere('c.id NOT IN (:excludeIds)')
+               ->setParameter('excludeIds', $excludeIds);
+        }
+
         if ($difficulty !== null) {
             $qb->andWhere('c.difficultyLevel = :difficulty')
                ->setParameter('difficulty', $difficulty);
         }
 
-        $ids = $qb->select('c.id')
-            ->getQuery()
-            ->getSingleColumnResult();
+        $qb->orderBy('RAND()');
 
-        if (empty($ids)) {
-            return null;
-        }
+        $result = $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
 
-        $randomId = $ids[array_rand($ids)];
-
-        return $this->find($randomId);
+        return $result;
     }
 
     /**
-     * @deprecated  Utilisez findRandomCard() avec le paramètre difficulty
+     * Retourne une carte aléatoire en excluant les cartes déjà jouées dans une session.
      */
-    public function findRandom(?int $themeId = null): ?Card
-    {
-        return $this->findRandomCard($themeId);
+    public function findRandomCardForSession(
+        int $sessionId,
+        ?int $themeId = null,
+        ?int $difficulty = null,
+    ): ?Card {
+        $qb = $this->createQueryBuilder('c');
+
+        // Exclure les cartes déjà dans cette session
+        $qb->andWhere('c.id NOT IN (
+            SELECT sc2.card_id FROM session_card sc2 WHERE sc2.session_id = :sessionId
+        )')->setParameter('sessionId', $sessionId);
+
+        if ($themeId !== null) {
+            $qb->andWhere('c.theme = :themeId')
+               ->setParameter('themeId', $themeId);
+        }
+
+        if ($difficulty !== null) {
+            $qb->andWhere('c.difficultyLevel = :difficulty')
+               ->setParameter('difficulty', $difficulty);
+        }
+
+        $qb->orderBy('RAND()');
+
+        return $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
     }
+
 }

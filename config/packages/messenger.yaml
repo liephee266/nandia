@@ -1,0 +1,20 @@
+# config/packages/messenger.yaml
+#
+# Messenger pour messages asynchrones (timer expiré, notifications...).
+#
+# En DEV : transport sync (exécution immédiate, pas de queue)
+# En PROD : remplacer 'sync' par 'doctrine' ou 'amqp' (Redis)
+#
+# Pour utiliser le transport async :
+#   php bin/console messenger:consume async -vv
+
+framework:
+    messenger:
+        # En dev, tout est synchrone (pas besoin de queue)
+        # En prod : changer transport par défaut
+        transports:
+            async: 'sync://'
+
+        routing:
+            # Router RoomCardTimerExpired vers le transport async
+            'App\Message\RoomCardTimerExpired': async

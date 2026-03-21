@@ -5,55 +5,142 @@ namespace App\Controller;
 
 use App\Entity\Users;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/api', name: 'api_')]
+/**
+ * Réinitialisation de mot de passe en deux étapes :
+ *
+ *  1. POST /api/password-reset/request  — génère un token et l'envoie par email
+ *  2. POST /api/password-reset/confirm  — valide le token et change le mot de passe
+ */
+#[Route('/api/password-reset', name: 'api_password_reset_')]
 class PasswordResetController extends AbstractController
 {
     public function __construct(
-        private EntityManagerInterface $entityManager,
-        private UserPasswordHasherInterface $passwordHasher,
+        private readonly EntityManagerInterface      $em,
+        private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly MailerInterface             $mailer,
+        private readonly LoggerInterface             $logger,
+        private readonly string                      $mailerFromEmail,
+        private readonly string                      $mailerFromName,
     ) {}
 
+    // ── Étape 1 : demander un token ───────────────────────────────────────────
+
     /**
-     * Réinitialise le mot de passe d'un utilisateur.
-     * Body JSON : { "email": string, "newPassword": string }
+     * Body JSON : { "email": string }
      *
-     * Note : dans un contexte de production, cette route enverrait d'abord
-     * un email avec un token. Ici le changement est direct (MVP).
+     * Génère un token sécurisé valable 1 heure et l'envoie par email.
+     * La réponse est volontairement générique pour ne pas révéler
+     * si l'adresse email existe en base (prévention de l'énumération).
      */
-    #[Route('/password-reset', name: 'password_reset', methods: ['POST'])]
-    public function reset(Request $request): JsonResponse
+    #[Route('/request', name: 'request', methods: ['POST'])]
+    public function request(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $data = json_decode($request->getContent(), true) ?? [];
 
-        if (empty($data['email']) || empty($data['newPassword'])) {
-            return $this->json(['error' => 'Email et nouveau mot de passe requis.'], 400);
+        if (empty($data['email'])) {
+            return $this->json(['error' => 'Email requis.'], 400);
         }
 
-        if (strlen($data['newPassword']) < 6) {
-            return $this->json(['error' => 'Le mot de passe doit faire au moins 6 caractères.'], 400);
-        }
-
-        $user = $this->entityManager
-            ->getRepository(Users::class)
+        /** @var Users|null $user */
+        $user = $this->em->getRepository(Users::class)
             ->findOneBy(['email' => $data['email']]);
 
-        // On retourne toujours 200 pour ne pas révéler si l'email existe
+        // Réponse identique qu'il y ait un compte ou non (anti-énumération)
+        $genericResponse = $this->json([
+            'message' => 'Si un compte correspond à cet email, un code de réinitialisation vient d\'être envoyé.',
+        ]);
+
         if ($user === null) {
-            return $this->json(['message' => 'Si ce compte existe, le mot de passe a été réinitialisé.'], 200);
+            return $genericResponse;
+        }
+
+        $token = $user->generateResetToken();
+        $this->em->flush();
+
+        // Envoi de l'email
+        try {
+            $email = (new TemplatedEmail())
+                ->from(new Address($this->mailerFromEmail, $this->mailerFromName))
+                ->to(new Address($user->getEmail()))
+                ->subject('Réinitialisation de votre mot de passe Nandia')
+                ->htmlTemplate('emails/password_reset.html.twig')
+                ->context([
+                    'token'      => $token,
+                    'expiresAt'  => $user->getResetTokenExpiresAt()?->format('H:i'),
+                    'prenom'     => $user->getPrenom() ?? $user->getPseudo() ?? 'Utilisateur',
+                ]);
+
+            $this->mailer->send($email);
+        } catch (TransportExceptionInterface $e) {
+            $this->logger->error('Password reset email failed', [
+                'email' => $data['email'],
+                'error' => $e->getMessage(),
+            ]);
+            return $this->json(['error' => 'Impossible d\'envoyer l\'email. Réessayez dans quelques minutes.'], 503);
+        }
+
+        return $genericResponse;
+    }
+
+    // ── Étape 2 : confirmer avec le token ─────────────────────────────────────
+
+    /**
+     * Body JSON : { "email": string, "token": string, "newPassword": string }
+     */
+    #[Route('/confirm', name: 'confirm', methods: ['POST'])]
+    public function confirm(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        if (empty($data['email']) || empty($data['token']) || empty($data['newPassword'])) {
+            return $this->json(['error' => 'email, token et newPassword sont requis.'], 400);
+        }
+
+        // Validation du mot de passe (≥ 8 chars + au moins 1 chiffre)
+        $pwd = $data['newPassword'];
+        if (strlen($pwd) < 8) {
+            return $this->json(['error' => 'Le mot de passe doit contenir au moins 8 caractères.'], 400);
+        }
+        if (!preg_match('/\d/', $pwd)) {
+            return $this->json(['error' => 'Le mot de passe doit contenir au moins un chiffre.'], 400);
+        }
+
+        /** @var Users|null $user */
+        $user = $this->em->getRepository(Users::class)
+            ->findOneBy(['email' => $data['email']]);
+
+        // Réponse générique pour ne pas révéler si l'email existe
+        if ($user === null) {
+            return $this->json(['error' => 'Token invalide ou expiré.'], 400);
+        }
+
+        // Vérifier que le token fourni correspond et n'est pas expiré
+        // Timing-safe comparison (prevents timing attacks)
+        if ($user->getResetToken() === null || !hash_equals($user->getResetToken(), $data['token'])) {
+            return $this->json(['error' => 'Token invalide ou expiré.'], 400);
+        }
+        if (!$user->isResetTokenValid()) {
+            return $this->json(['error' => 'Token invalide ou expiré.'], 400);
         }
 
         $user->setPassword(
-            $this->passwordHasher->hashPassword($user, $data['newPassword'])
+            $this->passwordHasher->hashPassword($user, $pwd)
         );
+        $user->clearResetToken();
 
-        $this->entityManager->flush();
+        $this->em->flush();
 
-        return $this->json(['message' => 'Mot de passe réinitialisé avec succès.'], 200);
+        return $this->json(['message' => 'Mot de passe réinitialisé avec succès.']);
     }
 }

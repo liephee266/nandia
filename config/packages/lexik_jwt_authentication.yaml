@@ -2,3 +2,7 @@ lexik_jwt_authentication:
     secret_key: '%env(resolve:JWT_SECRET_KEY)%'
     public_key: '%env(resolve:JWT_PUBLIC_KEY)%'
     pass_phrase: '%env(JWT_PASSPHRASE)%'
+    # Durée de vie du JWT en secondes.
+    # 900 = 15 minutes — fenêtre d'utilisation limitée si token volé.
+    # Le refresh token (30 jours) prend le relais automatiquement.
+    token_ttl: 900

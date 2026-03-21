@@ -11,6 +11,8 @@ use App\Repository\CardRepository;
 use App\Repository\CoupleRepository;
 use App\Repository\SessionRepository;
 use App\Repository\SessionCardRepository;
+use App\Service\PushNotificationService;
+use App\Service\SessionStatePublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -32,11 +34,13 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 class SessionCoupleController extends AbstractController
 {
     public function __construct(
-        private readonly EntityManagerInterface $em,
-        private readonly CoupleRepository       $coupleRepo,
-        private readonly SessionRepository      $sessionRepo,
-        private readonly SessionCardRepository  $sessionCardRepo,
-        private readonly CardRepository         $cardRepo,
+        private readonly EntityManagerInterface    $em,
+        private readonly CoupleRepository          $coupleRepo,
+        private readonly SessionRepository         $sessionRepo,
+        private readonly SessionCardRepository     $sessionCardRepo,
+        private readonly CardRepository            $cardRepo,
+        private readonly PushNotificationService   $push,
+        private readonly SessionStatePublisher     $sessionPublisher,
     ) {}
 
     // ── POST /api/couple-session/create ─────────────────────────────────────
@@ -47,14 +51,8 @@ class SessionCoupleController extends AbstractController
         #[CurrentUser] Users $user,
     ): JsonResponse {
         $couple = $this->coupleRepo->findActiveForUser($user);
-        if ($couple !== null) {
-            return $this->json([
-                'error' => 'Vous avez déjà un couple actif.',
-                'couple' => [
-                    'id'     => $couple->getId(),
-                    'status' => $couple->getStatus(),
-                ],
-            ], 409);
+        if ($couple === null) {
+            return $this->json(['error' => 'Vous devez faire partie d\'un couple actif pour créer une session.'], 403);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -165,6 +163,19 @@ class SessionCoupleController extends AbstractController
 
         $this->em->flush();
 
+        // Notify partner in real-time
+        $partner = $position === 1 ? $couple->getUser2() : $couple->getUser1();
+        if ($partner && $partner !== $user) {
+            $this->push->sendToUser(
+                $partner,
+                'Ton partenaire a répondu 💬',
+                'C\'est ton tour de répondre !',
+                ['route' => '/couple-play', 'sessionId' => (string) $session->getId()],
+            );
+        }
+
+        $this->sessionPublisher->publishSessionUpdate($session, 'partner_responded');
+
         return $this->json($this->serializeSession($session, $user, $couple));
     }
 
@@ -207,6 +218,19 @@ class SessionCoupleController extends AbstractController
         }
 
         $this->em->flush();
+
+        // Notifier les deux joueurs : nouvelle carte disponible
+        $recipients = array_filter([$couple->getUser1(), $couple->getUser2()]);
+        $this->push->sendToUsers(
+            $recipients,
+            'Nouvelle carte 🃏',
+            'Une nouvelle question vous attend !',
+            ['route' => '/couple-play', 'sessionId' => (string) $session->getId()],
+        );
+
+        $this->sessionPublisher->publishSessionEvent($session, 'new_card', [
+            'sessionCardId' => $newCard->getId(),
+        ]);
 
         return $this->json($this->serializeSession($session, $user, $couple));
     }
@@ -259,7 +283,15 @@ class SessionCoupleController extends AbstractController
     private function drawNextCard(Session $session, Couple $couple, int $orderIndex): ?SessionCard
     {
         $themeId = $session->getTheme()?->getId();
-        $card    = $this->cardRepo->findRandomCard($themeId);
+
+        // Exclure les cartes déjà jouées dans cette session pour éviter les doublons
+        $playedCardIds = array_map(
+            fn($sc) => $sc->getCard()?->getId(),
+            $session->getSessionCards()->toArray()
+        );
+        $playedCardIds = array_filter($playedCardIds, fn($id) => $id !== null);
+
+        $card = $this->cardRepo->findRandomCard($themeId, null, $playedCardIds ?: null);
 
         if (!$card) return null;
 

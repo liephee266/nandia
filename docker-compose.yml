@@ -55,7 +55,80 @@ services:
     depends_on:
       - database
 
+  mercure:
+    image: bitnami/mercure:latest
+    container_name: symfony_mercure_nandia
+    restart: unless-stopped
+    environment:
+      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:-!ChangeMeMercure!}
+      MERCURE_SERVER_ADDRESS: ':1337'
+      MERCURE_PUBLIC_URL: '${MERCURE_PUBLIC_URL:-http://localhost:1337}'
+    ports:
+      - "1337:1337"
+    depends_on:
+      - symfony
+
+  # ── GlitchTip — crash reporting open-source (alternative auto-hébergée à Sentry)
+  # API-compatible Sentry : le SDK Sentry fonctionne sans modification.
+  glitchtip-db:
+    image: postgres:17
+    container_name: symfony_glitchtip_db_nandia
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:-changeme}
+    volumes:
+      - glitchtip_pgdata:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
+
+  glitchtip:
+    image: glitchtip/gt:latest
+    container_name: symfony_glitchtip_nandia
+    restart: unless-stopped
+    environment:
+      GLITCHTIP_SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-!ChangeMeGlitchTip!}
+      DATABASE_URL: postgres://glitchtip:${GLITCHTIP_DB_PASSWORD:-changeme}@glitchtip-db:5432/glitchtip
+      EMAIL_URL: ${MAILER_DSN:-console://}
+      DEFAULT_FROM_EMAIL: ${MAILER_FROM:-noreply@nandia.app}
+      GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:15666}
+    ports:
+      - "15666:8000"
+    depends_on:
+      - glitchtip-db
+
+###> symfony/mercure-bundle ###
+  mercure:
+    image: dunglas/mercure
+    restart: unless-stopped
+    environment:
+      # Uncomment the following line to disable HTTPS,
+      #SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: '!ChangeThisMercureHubJWTSecretKey!'
+      MERCURE_SUBSCRIBER_JWT_KEY: '!ChangeThisMercureHubJWTSecretKey!'
+      # Set the URL of your Symfony project (without trailing slash!) as value of the cors_origins directive
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins http://127.0.0.1:8000
+    # Comment the following line to disable the development mode
+    command: /usr/bin/caddy run --config /etc/caddy/dev.Caddyfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "https://localhost/healthz"]
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - mercure_data:/data
+      - mercure_config:/config
+###< symfony/mercure-bundle ###
+
 volumes:
   pgdata:
   pgadmin_data:
   vendor:
+  glitchtip_pgdata:
+
+###> symfony/mercure-bundle ###
+  mercure_data:
+  mercure_config:
+###< symfony/mercure-bundle ###

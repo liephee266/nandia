@@ -1,0 +1,10 @@
+framework:
+    mailer:
+        # DSN configuré dans .env (MAILER_DSN).
+        # Exemples :
+        #   SMTP générique : smtp://user:pass@smtp.example.com:587?encryption=tls
+        #   Gmail           : gmail://user:app_password@default
+        #   Mailgun         : mailgun+smtp://key:domain@default
+        #   SendGrid        : sendgrid+smtp://key@default
+        #   Mailtrap (dev)  : smtp://user:pass@sandbox.smtp.mailtrap.io:2525
+        dsn: '%env(MAILER_DSN)%'

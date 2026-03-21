@@ -9,16 +9,19 @@ use App\Entity\RoomParticipant;
 use App\Entity\Session;
 use App\Entity\SessionCard;
 use App\Entity\Users;
+use App\Message\RoomCardTimerExpired;
 use App\Repository\SessionRepository;
 use App\Repository\CardRepository;
 use App\Repository\CoupleRepository;
 use App\Repository\RoomRepository;
 use App\Repository\RoomParticipantRepository;
 use App\Repository\CardVoteRepository;
+use App\Service\RoomStatePublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -44,6 +47,8 @@ class RoomController extends AbstractController
         private readonly CardRepository            $cardRepo,
         private readonly CardVoteRepository        $voteRepo,
         private readonly SessionRepository         $sessionRepo,
+        private readonly RoomStatePublisher         $roomPublisher,
+        private readonly MessageBusInterface       $messageBus,
     ) {}
 
     // ── POST /api/room/create ───────────────────────────────────────────────
@@ -200,6 +205,7 @@ class RoomController extends AbstractController
         }
 
         $this->em->flush();
+        $this->roomPublisher->publishRoomUpdate($room);
 
         return $this->json($this->serializeRoom($room, $couple, detailed: true));
     }
@@ -239,6 +245,7 @@ class RoomController extends AbstractController
             $room->setStatus(Room::STATUS_DONE);
             $room->setEndedAt(new \DateTimeImmutable());
             $this->em->flush();
+            $this->roomPublisher->publishRoomEvent($room, 'room_done');
             return $this->json([
                 'status' => 'done',
                 'scores' => $this->buildScores($room),
@@ -252,6 +259,7 @@ class RoomController extends AbstractController
             $room->setStatus(Room::STATUS_DONE);
             $room->setEndedAt(new \DateTimeImmutable());
             $this->em->flush();
+            $this->roomPublisher->publishRoomEvent($room, 'room_done');
             return $this->json([
                 'status' => 'done',
                 'scores' => $this->buildScores($room),
@@ -267,6 +275,7 @@ class RoomController extends AbstractController
         }
 
         $this->em->flush();
+        $this->roomPublisher->publishRoomUpdate($room);
 
         return $this->json($this->serializeRoom($room, $couple, detailed: true));
     }
@@ -359,6 +368,7 @@ class RoomController extends AbstractController
         }
 
         $this->em->flush();
+        $this->roomPublisher->publishRoomUpdate($room, $allAnswered ? 'voting_started' : 'answer_submitted');
 
         return $this->json($this->serializeRoom($room, $couple, detailed: true));
     }
@@ -428,7 +438,15 @@ class RoomController extends AbstractController
         $themeId    = $room->getTheme()?->getId();
         $excludeId  = $room->getCurrentCard()?->getId();
         $difficulty = $room->getDifficulty();
-        $card       = $this->cardRepo->findRandomCard($themeId, $excludeId, $difficulty);
+
+        // Exclure toutes les cartes déjà jouées dans cette room
+        $session = $room->getCurrentSessionCard()?->getSession();
+        $playedCardIds = $session !== null
+            ? array_map(fn($sc) => $sc->getCard()?->getId(), $session->getSessionCards()->toArray())
+            : [];
+        $playedCardIds = array_filter($playedCardIds, fn($id) => $id !== null);
+
+        $card = $this->cardRepo->findRandomCard($themeId, $excludeId, $playedCardIds ?: null, $difficulty);
 
         if (!$card) return null;
 
@@ -450,6 +468,16 @@ class RoomController extends AbstractController
 
         // Stocker la référence sur la salle
         $room->setCurrentSessionCard($sc);
+
+        // Flush pour obtenir l'ID avant de dispatch le message async
+        $this->em->flush();
+
+        // Dispatcher le message d'expiration timer (traité en async par Messenger)
+        if ($room->getTimerPerCard() !== null) {
+            $this->messageBus->dispatch(
+                new RoomCardTimerExpired($room->getId(), $sc->getId())
+            );
+        }
 
         return $card;
     }

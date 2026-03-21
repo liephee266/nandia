@@ -45,7 +45,14 @@ class CoupleController extends AbstractController
             ], 409);
         }
 
-        // Vérifier qu'il n'a pas déjà une invitation en attente
+        // Supprimer les anciennes invitations expirées avant d'en créer une nouvelle
+        $expired = $this->coupleRepo->findPendingForUser($user);
+        if ($expired && !$expired->isInviteValid()) {
+            $this->em->remove($expired);
+            $this->em->flush();
+        }
+
+        // Vérifier qu'il n'a pas déjà une invitation en attente (valide)
         $pending = $this->coupleRepo->findPendingForUser($user);
         if ($pending && $pending->isInviteValid()) {
             return $this->json($this->serializeCouple($pending));

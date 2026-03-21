@@ -58,3 +58,4 @@
 # Variables d'environnement locales (sensibles)
 .env.local
 .env.*.local
+pgpass

@@ -51,6 +51,14 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
 
     // Champ non-mappé (pas de colonne BDD) — utilisé uniquement pendant la requête
     #[Groups(['user:write'])]
+    #[Assert\Length(
+        min: 8,
+        minMessage: 'Le mot de passe doit contenir au moins {{ limit }} caractères.'
+    )]
+    #[Assert\Regex(
+        pattern: '/\d/',
+        message: 'Le mot de passe doit contenir au moins un chiffre.'
+    )]
     private ?string $plainPassword = null;
 
     #[ORM\Column(length: 100, nullable: true)]
@@ -118,6 +126,24 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $refreshTokenIssuedAt = null;
+
+    /**
+     * Token FCM (Firebase Cloud Messaging) pour les push notifications.
+     * Mis à jour au login ou à chaque démarrage de l'app.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $deviceToken = null;
+
+    /**
+     * Token opaque de réinitialisation de mot de passe (64 hex chars).
+     * Valable 1 heure, effacé après usage.
+     */
+    #[ORM\Column(length: 128, nullable: true, unique: true)]
+    private ?string $resetToken = null;
+
+    /** Expiration du reset token. */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $resetTokenExpiresAt = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
@@ -199,6 +225,45 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     public function revokeRefreshToken(): void
     {
         $this->refreshTokenRevokedAt = new \DateTimeImmutable();
+    }
+
+    // ── Device Token (FCM) ────────────────────────────────────────────────────
+
+    public function getDeviceToken(): ?string { return $this->deviceToken; }
+    public function setDeviceToken(?string $deviceToken): self
+    {
+        $this->deviceToken = $deviceToken;
+        return $this;
+    }
+
+    // ── Reset Token ───────────────────────────────────────────────────────────
+
+    public function getResetToken(): ?string { return $this->resetToken; }
+    public function getResetTokenExpiresAt(): ?\DateTimeImmutable { return $this->resetTokenExpiresAt; }
+
+    /**
+     * Génère un token opaque valable 1 heure et le retourne en clair.
+     */
+    public function generateResetToken(): string
+    {
+        $token = bin2hex(random_bytes(32)); // 64 chars hex
+        $this->resetToken          = $token;
+        $this->resetTokenExpiresAt = new \DateTimeImmutable('+1 hour');
+        return $token;
+    }
+
+    /** Invalide le token après usage. */
+    public function clearResetToken(): void
+    {
+        $this->resetToken          = null;
+        $this->resetTokenExpiresAt = null;
+    }
+
+    public function isResetTokenValid(): bool
+    {
+        return $this->resetToken !== null
+            && $this->resetTokenExpiresAt !== null
+            && $this->resetTokenExpiresAt > new \DateTimeImmutable();
     }
 
     // Getters et Setters...

@@ -16,8 +16,14 @@ class CardRandomController extends AbstractController
     {
         $themeId    = $request->query->get('themeId') ? (int) $request->query->get('themeId') : null;
         $difficulty = $request->query->get('difficulty') ? (int) $request->query->get('difficulty') : null;
+        $sessionId  = $request->query->get('sessionId') ? (int) $request->query->get('sessionId') : null;
 
-        $card = $cardRepository->findRandomCard($themeId, null, $difficulty);
+        if ($sessionId !== null) {
+            // Évite les doublons dans une session
+            $card = $cardRepository->findRandomCardForSession($sessionId, $themeId, $difficulty);
+        } else {
+            $card = $cardRepository->findRandomCard($themeId, null, null, $difficulty);
+        }
 
         if ($card === null) {
             return $this->json(['error' => 'Aucune carte disponible'], 404);

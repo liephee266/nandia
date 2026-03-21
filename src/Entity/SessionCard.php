@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     operations: [
         new Get(),
-        new GetCollection(),
+        new GetCollection(security: "object.session.user == user"),
         new Post(),
             new Patch(denormalizationContext: ['groups' => ['session_card:patch']]),
     ],
@@ -97,6 +97,11 @@ class SessionCard
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     #[Groups(['session_card:read'])]
     private ?\DateTimeImmutable $timerExpiresAt = null;
+
+    /** true = l'utilisateur a ajouté cette carte à ses favoris (journal) */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    #[Groups(['session_card:read', 'session_card:patch'])]
+    private bool $favorited = false;
 
     public function __construct()
     {
@@ -204,4 +209,8 @@ class SessionCard
 
     public function getTimerExpiresAt(): ?\DateTimeImmutable { return $this->timerExpiresAt; }
     public function setTimerExpiresAt(?\DateTimeImmutable $d): self { $this->timerExpiresAt = $d; return $this; }
+
+    public function isFavorited(): bool { return $this->favorited; }
+    public function setFavorited(bool $f): self { $this->favorited = $f; return $this; }
+    public function toggleFavorite(): self { $this->favorited = !$this->favorited; return $this; }
 }

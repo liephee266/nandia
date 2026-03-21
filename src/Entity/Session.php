@@ -19,7 +19,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(),
-        new GetCollection(),
+        new GetCollection(security: "object.user == user"),
         new Post(),
         new Patch(),
     ],
@@ -46,6 +46,10 @@ class Session
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     #[Groups(['session:read', 'session:write'])]
     private ?\DateTimeImmutable $endedAt = null;
+
+    /**Dernière modification de la session (pour SSE polling). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
 
     /**
      * Mode de jeu :
@@ -132,6 +136,15 @@ class Session
     {
         $this->endedAt = $endedAt;
         return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updatedAt; }
+    public function setUpdatedAt(?\DateTimeImmutable $d): self { $this->updatedAt = $d; return $this; }
+
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     public function getMode(): ?string

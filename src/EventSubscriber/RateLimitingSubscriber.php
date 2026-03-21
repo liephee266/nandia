@@ -11,18 +11,18 @@ use Symfony\Component\RateLimiter\RateLimiterFactory;
 /**
  * Applique le rate limiting sur les endpoints publics.
  *
- * Nécessite : composer require symfony/rate-limiter
- *
  * Routes limitées :
- *  - POST /api/v1/connexion  →  5 tentatives / 15 min par IP
- *  - POST /api/users         →  3 inscriptions / heure par IP
- *  - POST /api/token/refresh → 10 refresh / min par user (optionnel)
+ *  - POST /api/v1/connexion       →  5 tentatives / 15 min par IP
+ *  - POST /api/users              →  3 inscriptions / heure par IP
+ *  - POST /api/token/refresh      → 10 refresh / min par IP
  */
 class RateLimitingSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly RateLimiterFactory $loginLimiter,
         private readonly RateLimiterFactory $registerLimiter,
+        private readonly RateLimiterFactory $tokenRefreshLimiter,
+        private readonly RateLimiterFactory $passwordResetLimiter,
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -45,8 +45,10 @@ class RateLimitingSubscriber implements EventSubscriberInterface
         $method  = $request->getMethod();
 
         $limiter = match (true) {
-            $path === '/api/v1/connexion' && $method === 'POST' => $this->loginLimiter,
-            $path === '/api/users'        && $method === 'POST' => $this->registerLimiter,
+            $path === '/api/v1/connexion'    && $method === 'POST' => $this->loginLimiter,
+            $path === '/api/users'           && $method === 'POST' => $this->registerLimiter,
+            $path === '/api/token/refresh'  && $method === 'POST' => $this->tokenRefreshLimiter,
+            str_starts_with($path, '/api/password-reset') && $method === 'POST' => $this->passwordResetLimiter,
             default                                               => null,
         };
 
@@ -57,7 +59,7 @@ class RateLimitingSubscriber implements EventSubscriberInterface
         // Identification par IP pour login et register
         $identifier = $request->getClientIp() ?? 'unknown';
 
-        $limit = $limiter->consume($identifier);
+        $limit = $limiter->create($identifier)->consume(1);
 
         if (!$limit->isAccepted()) {
             $retryAfter = $limit->getRetryAfter()->getTimestamp() - time();

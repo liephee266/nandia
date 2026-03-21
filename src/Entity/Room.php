@@ -25,6 +25,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
  *   4. Après toutes les cartes → status=done, scores calculés
  */
 #[ORM\Entity(repositoryClass: RoomRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
         new Get(),
@@ -128,6 +129,10 @@ class Room
     #[Groups(['room:read', 'room:patch'])]
     private ?\DateTimeImmutable $endedAt = null;
 
+    /**Dernière modification de la room (pour SSE polling). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
+
     #[ORM\OneToMany(mappedBy: 'room', targetEntity: RoomParticipant::class, cascade: ['persist'], orphanRemoval: true)]
     #[Groups(['room:read'])]
     private Collection $participants;
@@ -213,6 +218,14 @@ class Room
 
     public function getEndedAt(): ?\DateTimeImmutable { return $this->endedAt; }
     public function setEndedAt(?\DateTimeImmutable $d): self { $this->endedAt = $d; return $this; }
+    public function getUpdatedAt(): ?\DateTimeImmutable { return $this->updatedAt; }
+    public function setUpdatedAt(?\DateTimeImmutable $d): self { $this->updatedAt = $d; return $this; }
+
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
+    }
 
     public function getParticipants(): Collection { return $this->participants; }
 

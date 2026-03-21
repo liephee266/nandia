@@ -15,7 +15,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     operations: [
         new Get(),
-        new GetCollection(),
+        new GetCollection(security: "object.user == user"),
         new Post()
     ],
     normalizationContext: ['groups' => ['response:read']],
