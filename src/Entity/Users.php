@@ -22,8 +22,8 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 #[ORM\Entity(repositoryClass: UsersRepository::class)]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
+        new Get(security: "is_granted('ROLE_USER') and (object == user or is_granted('ROLE_ADMIN'))"),
+        new GetCollection(security: "is_granted('ROLE_ADMIN')"),
         // Un utilisateur ne peut modifier que son propre compte
         new Patch(security: "is_granted('ROLE_USER') and object == user"),
         // Un utilisateur peut supprimer uniquement son propre compte

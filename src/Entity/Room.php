@@ -28,9 +28,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Patch(denormalizationContext: ['groups' => ['room:patch']]),
+        new Get(security: "is_granted('ROLE_USER')"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Patch(security: "is_granted('ROLE_USER') and object.getHostCouple().hasUser(user)", denormalizationContext: ['groups' => ['room:patch']]),
     ],
     normalizationContext:   ['groups' => ['room:read']],
     denormalizationContext: ['groups' => ['room:write']]

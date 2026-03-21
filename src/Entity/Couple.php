@@ -23,9 +23,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: CoupleRepository::class)]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(),
-        new Patch(denormalizationContext: ['groups' => ['couple:patch']]),
+        new Get(security: "is_granted('ROLE_USER') and object.hasUser(user)"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Patch(security: "is_granted('ROLE_USER') and object.hasUser(user)", denormalizationContext: ['groups' => ['couple:patch']]),
     ],
     normalizationContext:   ['groups' => ['couple:read']],
     denormalizationContext: ['groups' => ['couple:write']]

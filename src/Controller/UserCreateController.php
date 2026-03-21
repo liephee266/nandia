@@ -31,6 +31,10 @@ class UserCreateController extends AbstractController
             return $this->json(['error' => 'L\'email est obligatoire.'], 400);
         }
 
+        if (empty($data['plainPassword'])) {
+            return $this->json(['error' => 'Le mot de passe est obligatoire.'], 400);
+        }
+
         // Vérification unicité email avant toute tentative d'insertion
         $existing = $this->entityManager
             ->getRepository(Users::class)
@@ -45,11 +49,9 @@ class UserCreateController extends AbstractController
         $user->setPseudo($data['pseudo'] ?? null);
 
         // Hacher le mot de passe
-        if (isset($data['plainPassword'])) {
-            $user->setPassword(
-                $this->passwordHasher->hashPassword($user, $data['plainPassword'])
-            );
-        }
+        $user->setPassword(
+            $this->passwordHasher->hashPassword($user, $data['plainPassword'])
+        );
 
         // Validation des contraintes Symfony (@Assert)
         $errors = $this->validator->validate($user);

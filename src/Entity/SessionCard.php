@@ -15,10 +15,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: SessionCardRepository::class)]
 #[ApiResource(
     operations: [
-        new Get(),
-        new GetCollection(security: "object.session.user == user"),
-        new Post(),
-            new Patch(denormalizationContext: ['groups' => ['session_card:patch']]),
+        new Get(security: "is_granted('ROLE_USER') and object.getSession().getUser() == user"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Post(security: "is_granted('ROLE_USER')"),
+        new Patch(security: "is_granted('ROLE_USER') and object.getSession().getUser() == user", denormalizationContext: ['groups' => ['session_card:patch']]),
     ],
     normalizationContext: ['groups' => ['session_card:read']],
     denormalizationContext: ['groups' => ['session_card:write']]
