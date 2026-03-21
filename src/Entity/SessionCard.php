@@ -32,7 +32,7 @@ class SessionCard
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'sessionCards')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['session_card:read', 'session_card:write'])]
     private ?Session $session = null;
 

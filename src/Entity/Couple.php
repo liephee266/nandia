@@ -60,7 +60,7 @@ class Couple
     #[Groups(['couple:read', 'couple:patch'])]
     private string $status = self::STATUS_PENDING;
 
-    /** Code 6 caractères alphanumérique (ex: XK72AB). Affiché "NANDIA-XK72AB". */
+    /** Code 8 caractères alphanumérique (ex: XK72ABCD). Affiché "NANDIA-XK72ABCD". */
     #[ORM\Column(length: 10, unique: true)]
     #[Groups(['couple:read'])]
     private ?string $inviteCode = null;
@@ -91,7 +91,7 @@ class Couple
     {
         $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans O/0/I/1 (confusion)
         $code  = '';
-        for ($i = 0; $i < 6; $i++) {
+        for ($i = 0; $i < 8; $i++) {
             $code .= $chars[random_int(0, strlen($chars) - 1)];
         }
         return $code;

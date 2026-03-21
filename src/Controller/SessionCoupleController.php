@@ -127,6 +127,9 @@ class SessionCoupleController extends AbstractController
         if (empty($answerText)) {
             return $this->json(['error' => 'La réponse ne peut pas être vide.'], 400);
         }
+        if (strlen($answerText) > 2000) {
+            return $this->json(['error' => 'Réponse trop longue (max 2000 caractères).'], 422);
+        }
 
         $activeCard = $this->sessionCardRepo->findActiveCardForSession($session->getId());
         if (!$activeCard) {

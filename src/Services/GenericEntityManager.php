@@ -1,30 +1,25 @@
 <?php
 namespace App\Services;
 
-use App\Entity\Users;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class GenericEntityManager
 {
     private EntityManagerInterface $entityManager;
     private ValidatorInterface $validator;
     private PropertyAccessorInterface $propertyAccessor;
-    private UserPasswordHasherInterface $passwordHasher;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator,
         PropertyAccessorInterface $propertyAccessor,
-        UserPasswordHasherInterface $passwordHasher
     ) {
         $this->entityManager = $entityManager;
         $this->validator = $validator;
         $this->propertyAccessor = $propertyAccessor;
-        $this->passwordHasher = $passwordHasher;
     }
 
     /**
@@ -46,14 +41,18 @@ class GenericEntityManager
         }
         unset($data['id']);
         // Récupère les métadonnées de l'entité
+        // Champs sensibles jamais modifiables via cette API générique
+        $blacklist = ['roles', 'password', 'refreshToken', 'refreshTokenExpiresAt',
+                      'refreshTokenRevokedAt', 'refreshTokenIssuedAt', 'resetToken',
+                      'resetTokenExpiresAt', 'deviceToken', 'createdAt'];
+
         $metadata = $this->entityManager->getClassMetadata($entityClass);
         foreach ($data as $field => $value) {
+            if (in_array($field, $blacklist, true)) {
+                continue;
+            }
             // Vérifie si le champ est mappé dans l'entité
             if ($metadata->hasField($field)) {
-                if ($field == "password" and $entity instanceof Users) {
-                    $hashedPassword = $this->passwordHasher->hashPassword($entity, $data['password']);
-                    $value = $hashedPassword;
-                }
                 // Affecte la valeur du champ
                 $this->propertyAccessor->setValue($entity, $field, $value);
             }

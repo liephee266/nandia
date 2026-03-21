@@ -60,7 +60,7 @@ class CardRepository extends ServiceEntityRepository
                ->setParameter('difficulty', $difficulty);
         }
 
-        $qb->orderBy('RAND()');
+        $qb->orderBy('RANDOM()');
 
         $result = $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
 
@@ -79,7 +79,7 @@ class CardRepository extends ServiceEntityRepository
 
         // Exclure les cartes déjà dans cette session
         $qb->andWhere('c.id NOT IN (
-            SELECT sc2.card_id FROM session_card sc2 WHERE sc2.session_id = :sessionId
+            SELECT IDENTITY(sc2.card) FROM App\Entity\SessionCard sc2 WHERE sc2.session = :sessionId
         )')->setParameter('sessionId', $sessionId);
 
         if ($themeId !== null) {
@@ -92,7 +92,7 @@ class CardRepository extends ServiceEntityRepository
                ->setParameter('difficulty', $difficulty);
         }
 
-        $qb->orderBy('RAND()');
+        $qb->orderBy('RANDOM()');
 
         return $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
     }

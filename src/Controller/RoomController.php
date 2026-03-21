@@ -67,11 +67,11 @@ class RoomController extends AbstractController
 
         $room = new Room();
         $room->setHostCouple($couple);
-        $room->setCardCount((int) ($data['cardCount'] ?? 10));
-        $room->setMaxCouples((int) ($data['maxCouples'] ?? 8));
+        $room->setCardCount(max(1, min(100, (int) ($data['cardCount'] ?? 10))));
+        $room->setMaxCouples(max(2, min(20, (int) ($data['maxCouples'] ?? 8))));
 
         if (!empty($data['timerPerCard'])) {
-            $room->setTimerPerCard((int) $data['timerPerCard']);
+            $room->setTimerPerCard(max(5, min(300, (int) $data['timerPerCard'])));
         }
 
         if (!empty($data['difficulty'])) {
@@ -309,6 +309,9 @@ class RoomController extends AbstractController
         if (empty($answerText)) {
             return $this->json(['error' => 'Réponse vide.'], 400);
         }
+        if (strlen($answerText) > 2000) {
+            return $this->json(['error' => 'Réponse trop longue (max 2000 caractères).'], 422);
+        }
 
         // Trouver le participant et enregistrer sa réponse
         $myParticipant = null;
@@ -335,15 +338,8 @@ class RoomController extends AbstractController
             ], 409);
         }
 
-        $myParticipant->setCurrentAnswer($answerText);
-        $myParticipant->setHasAnsweredCurrentCard(true);
-
         // Vérifier si assez de participants restent pour continuer
-        $activeParticipants = $room->getParticipants()->toArray();
-        $count = count($activeParticipants);
-
-        // Abandonner la partie s'il ne reste qu'un seul couple
-        if ($count < 2) {
+        if ($room->getParticipants()->count() < 2) {
             $room->setStatus(Room::STATUS_DONE);
             $room->setEndedAt(new \DateTimeImmutable());
             $this->em->flush();
@@ -354,20 +350,27 @@ class RoomController extends AbstractController
             ], 409);
         }
 
-        // Vérifier si TOUS les participants actifs ont répondu
-        $allAnswered = true;
-        foreach ($activeParticipants as $p) {
-            if (!$p->isHasAnsweredCurrentCard()) {
-                $allAnswered = false;
-                break;
+        $allAnswered = false;
+        $this->em->wrapInTransaction(function () use ($room, $myParticipant, $answerText, &$allAnswered): void {
+            $myParticipant->setCurrentAnswer($answerText);
+            $myParticipant->setHasAnsweredCurrentCard(true);
+
+            $activeParticipants = $room->getParticipants()->toArray();
+
+            // Vérifier si TOUS les participants actifs ont répondu
+            $allAnswered = true;
+            foreach ($activeParticipants as $p) {
+                if (!$p->isHasAnsweredCurrentCard()) {
+                    $allAnswered = false;
+                    break;
+                }
             }
-        }
 
-        if ($allAnswered) {
-            $room->setCardPhase('voting');
-        }
+            if ($allAnswered) {
+                $room->setCardPhase('voting');
+            }
+        });
 
-        $this->em->flush();
         $this->roomPublisher->publishRoomUpdate($room, $allAnswered ? 'voting_started' : 'answer_submitted');
 
         return $this->json($this->serializeRoom($room, $couple, detailed: true));
@@ -474,9 +477,14 @@ class RoomController extends AbstractController
 
         // Dispatcher le message d'expiration timer (traité en async par Messenger)
         if ($room->getTimerPerCard() !== null) {
-            $this->messageBus->dispatch(
-                new RoomCardTimerExpired($room->getId(), $sc->getId())
-            );
+            try {
+                $this->messageBus->dispatch(
+                    new RoomCardTimerExpired($room->getId(), $sc->getId())
+                );
+            } catch (\Throwable $e) {
+                // Ne pas bloquer la partie si le bus de messages est indisponible
+                // Le timer sera ignoré mais la carte reste jouable
+            }
         }
 
         return $card;

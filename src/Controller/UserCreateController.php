@@ -8,7 +8,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -17,7 +16,6 @@ class UserCreateController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private UserPasswordHasherInterface $passwordHasher,
         private ValidatorInterface $validator
     ) {
     }
@@ -48,10 +46,8 @@ class UserCreateController extends AbstractController
         $user->setEmail($data['email']);
         $user->setPseudo($data['pseudo'] ?? null);
 
-        // Hacher le mot de passe
-        $user->setPassword(
-            $this->passwordHasher->hashPassword($user, $data['plainPassword'])
-        );
+        // Le subscriber UserPasswordHasherSubscriber hache plainPassword sur prePersist
+        $user->setPlainPassword($data['plainPassword']);
 
         // Validation des contraintes Symfony (@Assert)
         $errors = $this->validator->validate($user);
