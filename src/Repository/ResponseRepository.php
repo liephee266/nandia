@@ -46,6 +46,7 @@ class ResponseRepository extends ServiceEntityRepository
             'sessionCardId' => $r->getSessionCard()?->getId(),
             'questionText'  => $r->getSessionCard()?->getCard()?->getQuestionText(),
             'answerText'    => $r->getAnswerText(),
+            'note'          => $r->getSessionCard()?->getNote(),
             'user1Response' => null,
             'user2Response' => null,
             'themeName'     => $r->getSessionCard()?->getCard()?->getTheme()?->getName(),
@@ -70,11 +71,12 @@ class ResponseRepository extends ServiceEntityRepository
             ->getResult();
 
         $couple = array_map(fn(SessionCard $sc) => [
-            'id'            => 0, // pas d'ID Response ici
+            'id'            => 0,
             'type'          => 'couple',
             'sessionCardId' => $sc->getId(),
             'questionText'  => $sc->getCard()?->getQuestionText(),
-            'answerText'    => null, // la "réponse" c'est user1/user2Response
+            'answerText'    => null,
+            'note'          => $sc->getNote(),
             'user1Response' => $sc->getUser1Response(),
             'user2Response' => $sc->getUser2Response(),
             'themeName'     => $sc->getCard()?->getTheme()?->getName(),
