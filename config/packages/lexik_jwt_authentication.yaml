@@ -3,6 +3,6 @@ lexik_jwt_authentication:
     public_key: '%env(resolve:JWT_PUBLIC_KEY)%'
     pass_phrase: '%env(JWT_PASSPHRASE)%'
     # Durée de vie du JWT en secondes.
-    # 900 = 15 minutes — fenêtre d'utilisation limitée si token volé.
+    # 3600 = 1 heure — équilibre sécurité / UX pour une app mobile.
     # Le refresh token (30 jours) prend le relais automatiquement.
-    token_ttl: 900
+    token_ttl: 3600

@@ -11,7 +11,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class CardRandomController extends AbstractController
 {
-    #[Route('/api/cards/random', name: 'api_cards_random', methods: ['GET'])]
+    #[Route('/api/cards/random', name: 'api_cards_random', methods: ['GET'], priority: 10)]
     public function __invoke(Request $request, CardRepository $cardRepository, SerializerInterface $serializer): JsonResponse
     {
         $themeId    = $request->query->get('themeId') ? (int) $request->query->get('themeId') : null;

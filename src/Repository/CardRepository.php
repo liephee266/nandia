@@ -38,33 +38,41 @@ class CardRepository extends ServiceEntityRepository
         ?array $excludeIds = null,
         ?int $difficulty = null,
     ): ?Card {
-        $qb = $this->createQueryBuilder('c');
+        $conn = $this->getEntityManager()->getConnection();
+
+        $where  = [];
+        $params = [];
 
         if ($themeId !== null) {
-            $qb->andWhere('c.theme = :themeId')
-               ->setParameter('themeId', $themeId);
+            $where[]           = 'c.theme_id = :themeId';
+            $params['themeId'] = $themeId;
         }
-
         if ($excludeId !== null) {
-            $qb->andWhere('c.id != :excludeId')
-               ->setParameter('excludeId', $excludeId);
+            $where[]            = 'c.id != :excludeId';
+            $params['excludeId'] = $excludeId;
         }
-
-        if ($excludeIds !== null && count($excludeIds) > 0) {
-            $qb->andWhere('c.id NOT IN (:excludeIds)')
-               ->setParameter('excludeIds', $excludeIds);
+        if (!empty($excludeIds)) {
+            $where[]             = 'c.id NOT IN (:excludeIds)';
+            $params['excludeIds'] = implode(',', array_map('intval', $excludeIds));
         }
-
         if ($difficulty !== null) {
-            $qb->andWhere('c.difficultyLevel = :difficulty')
-               ->setParameter('difficulty', $difficulty);
+            $where[]              = 'c.difficulty_level = :difficulty';
+            $params['difficulty'] = $difficulty;
         }
 
-        $qb->orderBy('RANDOM()');
+        $sql = 'SELECT c.id FROM card c'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+            . ' ORDER BY RANDOM() LIMIT 1';
 
-        $result = $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
+        // Remplace le placeholder IN manuellement pour éviter les problèmes de binding de tableau
+        if (!empty($excludeIds)) {
+            $sql = str_replace(':excludeIds', $params['excludeIds'], $sql);
+            unset($params['excludeIds']);
+        }
 
-        return $result;
+        $id = $conn->fetchOne($sql, $params);
+
+        return $id !== false ? $this->find((int) $id) : null;
     }
 
     /**
@@ -75,26 +83,23 @@ class CardRepository extends ServiceEntityRepository
         ?int $themeId = null,
         ?int $difficulty = null,
     ): ?Card {
-        $qb = $this->createQueryBuilder('c');
-
-        // Exclure les cartes déjà dans cette session
-        $qb->andWhere('c.id NOT IN (
-            SELECT IDENTITY(sc2.card) FROM App\Entity\SessionCard sc2 WHERE sc2.session = :sessionId
-        )')->setParameter('sessionId', $sessionId);
+        $conn   = $this->getEntityManager()->getConnection();
+        $where  = ['c.id NOT IN (SELECT sc.card_id FROM session_card sc WHERE sc.session_id = :sessionId)'];
+        $params = ['sessionId' => $sessionId];
 
         if ($themeId !== null) {
-            $qb->andWhere('c.theme = :themeId')
-               ->setParameter('themeId', $themeId);
+            $where[]           = 'c.theme_id = :themeId';
+            $params['themeId'] = $themeId;
         }
-
         if ($difficulty !== null) {
-            $qb->andWhere('c.difficultyLevel = :difficulty')
-               ->setParameter('difficulty', $difficulty);
+            $where[]              = 'c.difficulty_level = :difficulty';
+            $params['difficulty'] = $difficulty;
         }
 
-        $qb->orderBy('RANDOM()');
+        $sql = 'SELECT c.id FROM card c WHERE ' . implode(' AND ', $where) . ' ORDER BY RANDOM() LIMIT 1';
+        $id  = $conn->fetchOne($sql, $params);
 
-        return $qb->getQuery()->setMaxResults(1)->getOneOrNullResult();
+        return $id !== false ? $this->find((int) $id) : null;
     }
 
 }

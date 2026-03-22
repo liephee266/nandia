@@ -35,6 +35,10 @@ security:
             methods: [POST]
             stateless: true
 
+        health:
+            pattern: ^/api/health$
+            stateless: true
+
         api:
             pattern: ^/api
             stateless: true
@@ -45,6 +49,7 @@ security:
         - { path: ^/api/token/refresh,  roles: PUBLIC_ACCESS }
         - { path: ^/api/users$,         roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/password-reset, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/api/health$,        roles: PUBLIC_ACCESS }
         - { path: ^/api,                roles: IS_AUTHENTICATED_FULLY }
 
     role_hierarchy:

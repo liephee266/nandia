@@ -103,6 +103,11 @@ class SessionCard
     #[Groups(['session_card:read', 'session_card:patch'])]
     private bool $favorited = false;
 
+    /** Note libre saisie par l'utilisateur après avoir réagi à la carte (solo) */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['session_card:read', 'session_card:patch'])]
+    private ?string $note = null;
+
     public function __construct()
     {
         $this->drawnAt = new \DateTimeImmutable();
@@ -213,4 +218,7 @@ class SessionCard
     public function isFavorited(): bool { return $this->favorited; }
     public function setFavorited(bool $f): self { $this->favorited = $f; return $this; }
     public function toggleFavorite(): self { $this->favorited = !$this->favorited; return $this; }
+
+    public function getNote(): ?string { return $this->note; }
+    public function setNote(?string $note): self { $this->note = $note; return $this; }
 }

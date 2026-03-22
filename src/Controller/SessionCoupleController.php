@@ -164,6 +164,18 @@ class SessionCoupleController extends AbstractController
             $activeCard->setCurrentTurn($next);
         }
 
+        // Auto-révéler dès que les deux partenaires ont répondu
+        if (
+            $activeCard->getUser1RespondedAt() !== null &&
+            $activeCard->getUser2RespondedAt() !== null &&
+            !$activeCard->isRevealed()
+        ) {
+            $activeCard->setRevealed(true);
+            $this->sessionPublisher->publishSessionEvent($session, 'reveal', [
+                'sessionCardId' => $activeCard->getId(),
+            ]);
+        }
+
         $this->em->flush();
 
         // Notify partner in real-time

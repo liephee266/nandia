@@ -1,0 +1,8 @@
+# Nandia – tâches planifiées
+# Installation :
+#   crontab cron/nandia.crontab
+# ou, pour fusionner avec un crontab existant :
+#   (crontab -l 2>/dev/null; cat cron/nandia.crontab) | crontab -
+
+# Notification quotidienne : carte aléatoire envoyée à 9h03 chaque matin
+3 9 * * * php /var/www/html/bin/console app:daily-card-notification >> /var/log/nandia-cron.log 2>&1
