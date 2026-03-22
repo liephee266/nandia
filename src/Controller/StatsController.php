@@ -2,10 +2,12 @@
 
 namespace App\Controller;
 
+use App\Repository\CoupleRepository;
 use App\Repository\SessionRepository;
 use App\Repository\SessionCardRepository;
 use App\Repository\ResponseRepository;
 use App\Repository\UsersRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
@@ -82,5 +84,105 @@ class StatsController extends AbstractController
         }
 
         return $this->json($stats);
+    }
+
+    /**
+     * Statistiques communes d'un couple.
+     * GET /api/stats/couple
+     *
+     * Retourne :
+     *  - partnerPseudo     : pseudo du partenaire
+     *  - sessionsCouple    : nombre de sessions couple
+     *  - sessionsCompleted : sessions couple terminées
+     *  - cardsCouple       : cartes jouées ensemble
+     *  - totalFavorites    : cartes favorites issues de sessions couple
+     *  - topThemes         : top 3 thèmes joués ensemble [{name, count}]
+     */
+    #[Route('/stats/couple', name: 'couple_stats', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function coupleStats(
+        CoupleRepository      $coupleRepository,
+        EntityManagerInterface $em,
+    ): JsonResponse {
+        /** @var \App\Entity\Users $me */
+        $me     = $this->getUser();
+        $couple = $coupleRepository->findActiveForUser($me);
+
+        if (!$couple) {
+            return $this->json(['error' => 'Aucun couple actif.'], 404);
+        }
+
+        $partner = $couple->getUser1()->getId() === $me->getId()
+            ? $couple->getUser2()
+            : $couple->getUser1();
+
+        $cacheKey = "couple_stats_v1_{$couple->getId()}";
+        $item     = $this->statsCache->getItem($cacheKey);
+
+        if ($item->isHit()) {
+            return $this->json($item->get());
+        }
+
+        // Sessions couple (les deux partenaires peuvent être Session.user)
+        $modes = ['couple_live', 'couple_relax'];
+
+        $sessionsCouple = (int) $em->createQuery(
+            'SELECT COUNT(s.id) FROM App\Entity\Session s
+             WHERE s.couple = :couple AND s.mode IN (:modes)'
+        )->setParameters(['couple' => $couple, 'modes' => $modes])
+         ->getSingleScalarResult();
+
+        $sessionsCompleted = (int) $em->createQuery(
+            'SELECT COUNT(s.id) FROM App\Entity\Session s
+             WHERE s.couple = :couple AND s.mode IN (:modes) AND s.endedAt IS NOT NULL'
+        )->setParameters(['couple' => $couple, 'modes' => $modes])
+         ->getSingleScalarResult();
+
+        $cardsCouple = (int) $em->createQuery(
+            'SELECT COUNT(sc.id) FROM App\Entity\SessionCard sc
+             JOIN sc.session s
+             WHERE s.couple = :couple AND s.mode IN (:modes)'
+        )->setParameters(['couple' => $couple, 'modes' => $modes])
+         ->getSingleScalarResult();
+
+        $totalFavorites = (int) $em->createQuery(
+            'SELECT COUNT(sc.id) FROM App\Entity\SessionCard sc
+             JOIN sc.session s
+             WHERE s.couple = :couple AND s.mode IN (:modes) AND sc.favorited = true'
+        )->setParameters(['couple' => $couple, 'modes' => $modes])
+         ->getSingleScalarResult();
+
+        // Top thèmes (GROUP BY theme name, ORDER BY count DESC, LIMIT 3)
+        $rows = $em->createQuery(
+            'SELECT t.name AS themeName, COUNT(sc.id) AS cnt
+             FROM App\Entity\SessionCard sc
+             JOIN sc.session s
+             JOIN sc.card c
+             JOIN c.theme t
+             WHERE s.couple = :couple AND s.mode IN (:modes)
+             GROUP BY t.id, t.name
+             ORDER BY cnt DESC'
+        )->setParameters(['couple' => $couple, 'modes' => $modes])
+         ->setMaxResults(3)
+         ->getArrayResult();
+
+        $topThemes = array_map(fn($r) => [
+            'name'  => $r['themeName'],
+            'count' => (int) $r['cnt'],
+        ], $rows);
+
+        $data = [
+            'partnerPseudo'     => $partner?->getPseudo() ?? $partner?->getEmail() ?? '?',
+            'sessionsCouple'    => $sessionsCouple,
+            'sessionsCompleted' => $sessionsCompleted,
+            'cardsCouple'       => $cardsCouple,
+            'totalFavorites'    => $totalFavorites,
+            'topThemes'         => $topThemes,
+        ];
+
+        $item->set($data)->expiresAfter(self::CACHE_TTL);
+        $this->statsCache->save($item);
+
+        return $this->json($data);
     }
 }
