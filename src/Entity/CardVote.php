@@ -20,6 +20,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
  *  - Chaque vote accordé vaut +2 points pour le couple cible
  */
 #[ORM\Entity(repositoryClass: CardVoteRepository::class)]
+#[ORM\Table(indexes: [
+    new ORM\Index(name: 'idx_cardvote_target_session', columns: ['session_card_id', 'target_couple_id']),
+])]
 #[ORM\UniqueConstraint(
     name: 'uniq_vote_per_card',
     columns: ['session_card_id', 'voter_couple_id']

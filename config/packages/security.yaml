@@ -21,7 +21,7 @@ security:
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
         register:
-            pattern: ^/api/users$
+            pattern: ^/api/v1/register
             methods: [POST]
             stateless: true
 
@@ -47,6 +47,7 @@ security:
     access_control:
         - { path: ^/api/v1/connexion,   roles: PUBLIC_ACCESS }
         - { path: ^/api/token/refresh,  roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/register,     roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/users$,         roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/password-reset, roles: PUBLIC_ACCESS, methods: [POST] }
         - { path: ^/api/health$,        roles: PUBLIC_ACCESS }

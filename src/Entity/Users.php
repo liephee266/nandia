@@ -157,12 +157,17 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Response::class)]
     private Collection $responses;
 
-
+    /** Packs achetés par l'utilisateur */
+    #[ORM\ManyToMany(targetEntity: Pack::class, inversedBy: 'purchasedBy')]
+    #[ORM\JoinTable(name: 'user_packs')]
+    #[Groups(['user:read'])]
+    private Collection $purchasedPacks;
 
     public function __construct()
     {
         $this->sessions = new ArrayCollection();
         $this->responses = new ArrayCollection();
+        $this->purchasedPacks = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -364,6 +369,11 @@ class Users implements UserInterface, PasswordAuthenticatedUserInterface
     public function getResponses(): Collection
     {
         return $this->responses;
+    }
+
+    public function getPurchasedPacks(): Collection
+    {
+        return $this->purchasedPacks;
     }
 
     public function getUserIdentifier(): string

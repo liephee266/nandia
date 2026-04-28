@@ -1,0 +1,24 @@
+# config/services_test.yaml
+# Overrides de services pour l'environnement de test
+
+services:
+    # Mock du service de push notifications (pas d'appels OneSignal en test)
+    App\Service\PushNotificationService:
+        class: App\Service\PushNotificationService
+        arguments:
+            $oneSignalAppId: 'test-app-id'
+            $oneSignalRestApiKey: 'test-api-key'
+
+    # Mock du RoomStatePublisher (pas de Mercure en test)
+    App\Service\RoomStatePublisher:
+        class: App\Service\RoomStatePublisher
+        arguments:
+            $publisher: '@test.publisher.mock'
+
+    test.publisher.mock:
+        class: Symfony\Component\Mercure\Discovery
+
+    App\Service\SessionStatePublisher:
+        class: App\Service\SessionStatePublisher
+        arguments:
+            $publisher: '@test.publisher.mock'

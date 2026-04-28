@@ -79,7 +79,9 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
-        ]
+        ],
+        "test": "bin/phpunit",
+        "test:coverage": "bin/phpunit --coverage-html var/coverage"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -92,6 +94,10 @@
     },
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "^4.3",
-        "symfony/maker-bundle": "^1.64"
+        "phpunit/phpunit": "^9.5",
+        "symfony/browser-kit": "7.3.*",
+        "symfony/css-selector": "7.3.*",
+        "symfony/maker-bundle": "^1.64",
+        "symfony/phpunit-bridge": "^8.0"
     }
 }

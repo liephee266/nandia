@@ -631,7 +631,7 @@ class CardFixtures extends Fixture
                 ],
             ],
 
-            // ── 14. QUOTIDIEN
+            // ── 14. QUOTIDIEN ─────────────────────────────────────────────────
             [
                 'name'            => 'Quotidien',
                 'colorCode'       => '#7f8c8d',
@@ -646,8 +646,13 @@ class CardFixtures extends Fixture
                     "Comment organisez-vous vos weekends ?",
                     "Quelle partie de votre routine commune est la plus importante pour toi ?",
                     "Qu'est-ce qui change le plus depuis que vous vivez ensemble ?",
-                    "Comment gérez-vous les matins chargés ?",
+                    "Comment gérez-vous les matins chargée ?",
                     "Quelle est votre moment de la journée en couple ?",
+                    "Comment faites-vous les choix alimentaires quotidiens ?",
+                    "Quelle est la chose que tu aimerais changer dans notre quotidien ?",
+                    "Comment organisez-vous les moments de détente ?",
+                    "Quelle est votre tradition quotidienne préférée ?",
+                    "Comment gérez-vous les imprévus du quotidien ?",
                 ],
                 'challenges' => [
                     "Préparez le petit-déjeuner ensemble demain.",
@@ -658,7 +663,7 @@ class CardFixtures extends Fixture
                 ],
             ],
 
-            // ── 15. FAMILLE
+            // ── 15. FAMILLE ────────────────────────────────────────────────────
             [
                 'name'            => 'Famille',
                 'colorCode'       => '#e67e22',
@@ -672,9 +677,14 @@ class CardFixtures extends Fixture
                     "Quelle est la chose la plus importante que tu as apprise de ta famille ?",
                     "Comment veux-tu élever nos enfants (si vous en avez) ?",
                     "Quelle est ta définition d'une famille idéale ?",
-                    "Comment平衡ez-vous famille élargie et famille nucléaire ?",
+                    "Comment平衡sez-vous famille élargie et famille nucléaire ?",
                     "Quelle est la valeur familiale la plus importante pour toi ?",
                     "Comment ta famille a-t-elle influencé tes attentes en couple ?",
+                    "Quelle est la relation avec tes frères et sœurs ?",
+                    "Comment gère-tu les conflits familiaux ?",
+                    "Quelle est votre vision des réunions familiales ?",
+                    "Comment intègres-tu ma famille dans ta vie ?",
+                    "Quelle est la chose la plus importante que tu veux transmettre ?",
                 ],
                 'challenges' => [
                     "Discutez de votre projet familial.",
@@ -685,14 +695,14 @@ class CardFixtures extends Fixture
                 ],
             ],
 
-            // ── 16. COMMUNICATION
+            // ── 16. COMMUNICATION ──────────────────────────────────────────────
             [
                 'name'            => 'Communication',
                 'colorCode'       => '#3498db',
                 'description'     => 'Améliorez votre façon de communiquer et de vous comprendre.',
                 'backgroundImage' => 'assets/images/themes/communication.jpeg',
                 'cards' => [
-                    "Comment préfères-tu que je te partage mes sentiments ?",
+                    "Comment prefères-tu que je te partage mes sentiments ?",
                     "Qu'est-ce qui t'aide à mieux comprendre ce que je ressens ?",
                     "Comment réagis-tu quand nous avons un désaccord ?",
                     "Quelle est la chose la plus difficile à communiquer pour toi ?",
@@ -700,8 +710,13 @@ class CardFixtures extends Fixture
                     "Qu'est-ce qui te fait sentir écouté(e) ?",
                     "Comment gères-tu les silences dans notre relation ?",
                     "Quelle est votre façon idéale de résoudre un conflit ?",
-                    "Comment exprimes-tu ton affection au quotidien ?",
+                    "Comment expres-tu ton affection au quotidien ?",
                     "Qu'est-ce que tu aimerais que je te dise plus souvent ?",
+                    "Comment géres-tu les conversations difficiles ?",
+                    "Quelle est la chose la plus importante que tu aies dû me dire ?",
+                    "Comment votre communication a-t-elle évolué ?",
+                    "Qu'est-ce qui facilite tes échanges avec moi ?",
+                    "Comment gères-tu les malentendus ?",
                 ],
                 'challenges' => [
                     "Pratiquez l'écoute active pendant 10 minutes.",
@@ -712,7 +727,7 @@ class CardFixtures extends Fixture
                 ],
             ],
 
-            // ── 17. VOYAGE
+            // ── 17. VOYAGE ─────────────────────────────────────────────────────
             [
                 'name'            => 'Voyage',
                 'colorCode'       => '#1abc9c',
@@ -722,13 +737,18 @@ class CardFixtures extends Fixture
                     "Quel est ton rêve de voyage ultime ?",
                     "Où aimerais-tu voyager avec moi ?",
                     "Quel type de vacances préfères-tu ?",
-                    "Quelle destination dreamed depuis longtemps ?",
+                    "Quelle destination dreaming depuis longtemps ?",
                     "Comment organisez-vous vos voyages ?",
                     "Quel est ton meilleur souvenir de voyage ?",
                     "Quelle est la prochaine destination sur votre liste ?",
                     "Comment gérez-vous les différences d'avis sur les destinations ?",
                     "Quel type de voyageur es-tu ?",
                     "Quelle est votre façon idéale de découvrir un endroit ?",
+                    "Quels pays voudrais-tu absolument visiter ?",
+                    "Comment réagis-tu aux imprévus en voyage ?",
+                    "Quelle est votre philosophie de voyage ?",
+                    "Comment intégrez-vous le voyage dans votre budget ?",
+                    "Quel type d'aventure rechercheriez-vous ensemble ?",
                 ],
                 'challenges' => [
                     "Planifiez un voyage surprise pour l'autre.",
@@ -739,16 +759,16 @@ class CardFixtures extends Fixture
                 ],
             ],
 
-            // ── 18. FINANCES
+            // ── 18. FINANCES ─────────────────────────────────────────────────
             [
                 'name'            => 'Finances',
                 'colorCode'       => '#27ae60',
-                'description'     => 'Parlez d\'argent, de budget et de votre vision financière commune.',
+                'description'     => 'Parlez d'argent, de budget et de votre vision financière commune.',
                 'backgroundImage' => 'assets/images/themes/finances.jpeg',
                 'cards' => [
                     "Comment gères-tu tes finances personnelles ?",
-                    "Quelle est ta philosophie sur l'argent ?",
-                    "Comment préfères-tu gérer les dépenses communes ?",
+                    "Quelle est ta philosophy sur l'argent ?",
+                    "Comment prefères-tu gérer les dépenses communes ?",
                     "Quel est ton rapport à l'épargne ?",
                     "Quelle est la plus grosse dépense que tu aies faite pour nous ?",
                     "Comment organisez-vous votre budget mensuel ?",
@@ -756,17 +776,22 @@ class CardFixtures extends Fixture
                     "Comment gérez-vous les déséquilibres de revenus ?",
                     "Quelle est votre vision financière à long terme ?",
                     "Comment abordez-vous les achats importants ?",
+                    "Quel est le plus grand luxe que tu t'offres ?",
+                    "Comment ta famille t'a-t-elle appris à gérer l'argent ?",
+                    "Quelle est ta plus grande peur financière ?",
+                    "Comment gérez-vous les imprevus financiers ?",
+                    "Quelle est la chose la plus importante que l'argent vous permet ?",
                 ],
                 'challenges' => [
                     "Etablissez un budget commun.",
                     "Discutez de vos objectifs financiers.",
                     "Faites le point sur vos dépenses du mois.",
-                    "Décidez d'une dépense à faire ensemble.",
+                    "Decidez d'une dépense à faire ensemble.",
                     "Partagez votre rapport à l'argent.",
                 ],
             ],
 
-            // ── 19. CONFLITS
+            // ── 19. CONFLITS ───────────────────────────────────────────────────
             [
                 'name'            => 'Conflits',
                 'colorCode'       => '#e74c3c',
@@ -779,25 +804,30 @@ class CardFixtures extends Fixture
                     "Qu'est-ce qui cause le plus de friction dans notre couple ?",
                     "Comment gères-tu la colère dans notre relation ?",
                     "Quelle est la dispute la plus difficile que vous ayiez eue ?",
-                    "Comment abordes-tu les sujets délicats ?",
+                    "Comment abordes-tu les sujets delicats ?",
                     "Qu'est-ce qui te fait sentir frustré(e) dans notre relation ?",
                     "Comment fais-tu la paix après une dispute ?",
                     "Quelle est la chose la plus importante à éviter dans un conflit ?",
+                    "Comment gérez-vous les désaccords sur les enfants (si applicables) ?",
+                    "Quelle est votre façon idéale de négocier ?",
+                    "Comment exprimes-tu ton mécontentement ?",
+                    "Qu'est-ce qui rend les conflits constructifs ou destructeurs ?",
+                    "Comment travailles-tu sur les problèmes relationnels ?",
                 ],
                 'challenges' => [
-                    "Aborddez un sujet délicat calmement.",
-                    "Faites un exercice de médiation.",
+                    "Aborddez un sujet delicat calmement.",
+                    "Faites un exercice de-mdiation.",
                     "Répondez à des questions difficiles.",
                     "Faites un exercice de perspective taking.",
                     "Etablissez des règles pour les conflits.",
                 ],
             ],
 
-            // ── 20. AMIS
+            // ── 20. AMIS ──────────────────────────────────────────────────────
             [
                 'name'            => 'Amis',
                 'colorCode'       => '#9b59b6',
-                'description'     => 'Explorez l\'importance des amis et de la vie sociale dans votre couple.',
+                'description'     => 'Explorez l'importance des amis et de la vie sociale dans votre couple.',
                 'backgroundImage' => 'assets/images/themes/amis.jpeg',
                 'cards' => [
                     "Quelle est l'importance de tes amis pour toi ?",
@@ -808,19 +838,24 @@ class CardFixtures extends Fixture
                     "Comment gérez-vous les amitiés mixtes (couple + amis) ?",
                     "Quelle est la qualité que tu cherches chez un ami ?",
                     "Comment ta vision des amis a-t-elle évolué depuis notre couple ?",
-                    "Quelle est votre politique concernant les amis du sexe opposé ?",
-                    "Comment géres-tu la jalousie sociale ?",
+                    "Quelle est votre politique concernant les amis du sexe opposite ?",
+                    "Comment gères-tu la jalousie sociale ?",
+                    "Quelle est la relation amicale la plus importante pour toi ?",
+                    "Comment organisez-vous les soirées entre amis ?",
+                    "Quel ami communs apprécieriez-vous de voir plus ?",
+                    "Comment faites-vous平衡amis et couple ?",
+                    "Quelle est votre approche des relations sociales ?",
                 ],
                 'challenges' => [
                     "Invitez des amis à passer une soirée ensemble.",
                     "Parlez de vos amis d'enfance.",
                     "Faites une activité sociale ensemble.",
                     "Présentez-vous mutuellement à vos amis.",
-                    "Créez un nouveau rituel avec des amis.",
+                    "Créez un nuevo rituelfort avec des amis.",
                 ],
             ],
 
-            // ── 21. SANTÉ
+            // ── 21. SANTÉ ──────────────────────────────────────────────────────
             [
                 'name'            => 'Santé',
                 'colorCode'       => '#2ecc71',
@@ -829,14 +864,19 @@ class CardFixtures extends Fixture
                 'cards' => [
                     "Comment prends-tu soin de ta santé mentale ?",
                     "Quelle est ta routine bien-être ?",
-                    "Comment gères-tu le stress ?",
+                    "Comment gère-tu le stress ?",
                     "Quelle est ton approche de l'exercice physique ?",
-                    "Comment soutiennes-tu ma santé ?",
+                    "Comment supportes-tu ma santé ?",
                     "Quelle est la chose la plus importante pour ton bien-être ?",
                     "Comment intégrez-vous le sport dans votre vie commune ?",
                     "Quelle est votre philosophie sur l'alimentation ?",
                     "Comment gères-tu les problèmes de santé ?",
                     "Quelle est votre approche du sommeil ?",
+                    "Comment abordes-tu les sujets de santé delicats ?",
+                    "Quel est ton plus grand conseil bien-être ?",
+                    "Comment поддержки-vous mutuellement dans les difficultes ?",
+                    "Quelle activité bien-être voulez-vous essayer ensemble ?",
+                    "Comment gérez-vous les habitudes santé differentes ?",
                 ],
                 'challenges' => [
                     "Faites une activité sportive ensemble.",
@@ -847,23 +887,28 @@ class CardFixtures extends Fixture
                 ],
             ],
 
-            // ── 22. DÉCISIONS
+            // ── 22. DÉCISIONS ─────────────────────────────────────────────────
             [
                 'name'            => 'Décisions',
                 'colorCode'       => '#f39c12',
                 'description'     => 'Apprenez à prendre des décisions ensemble efficacement.',
                 'backgroundImage' => 'assets/images/themes/decisions.jpeg',
                 'cards' => [
-                    "Comment prends-tu les décisions importantes ?",
+                    "Comment prises-tu les décisions importantes ?",
                     "Quelle est la décision la plus difficile que vous ayiez prise ?",
                     "Comment gérez-vous les décisions quotidiennes ?",
                     "Quelle est ta méthode pour prendre une décision ?",
-                    "Comment abordez-tu les décisions à deux ?",
+                    "Comment abordes-tu les décisions à deux ?",
                     "Quelle décision attends-tu de prendre ensemble ?",
                     "Comment gérez-vous les désaccords sur les décisions ?",
                     "Quelle est votre façon de négocier ?",
                     "Comment faites-vous les compromis ?",
                     "Quelle est la décision que tu regrettes ?",
+                    "Comment impliques-tu l'autre dans tes choix ?",
+                    "Quelle est la décision la plus importante de votre couple ?",
+                    "Comment gérez-vous les décisions rapides vs importantes ?",
+                    "Quelle est votre approche des décisions financières ?",
+                    "Comment prisez-vous les décisions concernant l'avenir ?",
                 ],
                 'challenges' => [
                     "Faites une décision importante ensemble cette semaine.",
@@ -874,7 +919,7 @@ class CardFixtures extends Fixture
                 ],
             ],
 
-            // ── 23. ROUTINE
+            // ── 23. ROUTINE ─────────────────────────────────────────────────────
             [
                 'name'            => 'Routine',
                 'colorCode'       => '#95a5a6',
@@ -891,6 +936,11 @@ class CardFixtures extends Fixture
                     "Comment vos routines du matin s'harmonisent-elles ?",
                     "Quelle routine partages-tu avec moi ?",
                     "Comment gères-tu les jours sans routine ?",
+                    "Quelle est votre routine du weekend ?",
+                    "Comment crée-t-on de nouvelles habitudes ?",
+                    "Quelle routine as-tu du mal à maintenir ?",
+                    "Comment intègres-tu du changement dans tes routines ?",
+                    "Quelle est la routine que tu apprécies le plus chez nous ?",
                 ],
                 'challenges' => [
                     "Créez une nouvelle routine ensemble.",

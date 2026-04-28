@@ -1,0 +1,6 @@
+# config/packages/test/doctrine.yaml
+doctrine:
+    dbal:
+        # Utiliser SQLite en test pour isolation totale
+        # Fallback sur PostgreSQL test si DRIVER_TEST_DSN est défini
+        url: '%env(resolve:DATABASE_URL)%_test'

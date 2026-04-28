@@ -1,0 +1,5 @@
+# config/packages/test/validator.yaml
+framework:
+    validation:
+        # Désactiver la vérification de mot de passe compromis en test
+        not_compromised_password: false

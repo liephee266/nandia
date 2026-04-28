@@ -10,11 +10,12 @@ class AppFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-        $user = new Users();
-        $user->setEmail('test@example.local')
-             ->setPlainPassword('Test1234!')
-             ->setPseudo('TestUser');
-        $manager->persist($user);
-        $manager->flush();
+        // Disabled - causes issues with existing data
+        // $user = new Users();
+        // $user->setEmail('test@example.local')
+        //      ->setPlainPassword('Test1234!')
+        //      ->setPseudo('TestUser');
+        // $manager->persist($user);
+        // $manager->flush();
     }
 }

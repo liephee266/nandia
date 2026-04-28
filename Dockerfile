@@ -5,7 +5,6 @@ FROM dunglas/frankenphp:1.1.1
 RUN apt-get update && apt-get install -y git unzip libicu-dev libpq-dev libzip-dev zlib1g-dev
 
 # Active les extensions PHP requises
-# Note : FrankenPHP est basé sur PHP, donc on peut utiliser docker-php-ext-*
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
@@ -27,3 +26,7 @@ ENV APP_ENV=prod
 
 # Configure FrankenPHP pour servir Symfony depuis /public
 COPY docker/frankenphp/conf.frankenphp.yaml /etc/frankenphp.yaml
+
+# Script d'entrée : génère les clés JWT si absentes
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -1,0 +1,6 @@
+# config/packages/test/messenger.yaml
+framework:
+    messenger:
+        # En test, tous les messages sont traités synchronement
+        transports:
+            async: 'in-memory://'

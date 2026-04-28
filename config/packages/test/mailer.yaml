@@ -1,0 +1,6 @@
+# config/packages/test/mailer.yaml
+framework:
+    cache:
+        pools:
+            test.mailer:
+                adapter: cache.adapter.filesystem

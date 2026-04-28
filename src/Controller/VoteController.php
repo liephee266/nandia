@@ -171,17 +171,29 @@ class VoteController extends AbstractController
             return $this->json(['error' => 'Carte introuvable.'], 404);
         }
 
-        $votes = $this->voteRepo->findBy(['sessionCard' => $sessionCard]);
+        // Fix N+1: requete avec JOIN pour charger les relations en une requete
+        $dql = '
+            SELECT v, t, u1, u2
+            FROM App\Entity\CardVote v
+            LEFT JOIN v.targetCouple t
+            LEFT JOIN t.user1 u1
+            LEFT JOIN t.user2 u2
+            WHERE v.sessionCard = :sessionCard
+        ';
+        $votes = $this->em->createQuery($dql)->setParameter('sessionCard', $sessionCard)->getResult();
 
         // Grouper les votes par couple cible
         $tally = [];
         foreach ($votes as $v) {
-            $tid = $v->getTargetCouple()?->getId();
+            $targetCouple = $v->getTargetCouple();
+            if (!$targetCouple) continue;
+            
+            $tid = $targetCouple->getId();
             if (!isset($tally[$tid])) {
                 $tally[$tid] = [
                     'coupleId' => $tid,
-                    'pseudo1'  => $v->getTargetCouple()?->getUser1()?->getPseudo(),
-                    'pseudo2'  => $v->getTargetCouple()?->getUser2()?->getPseudo(),
+                    'pseudo1'  => $targetCouple->getUser1()?->getPseudo(),
+                    'pseudo2'  => $targetCouple->getUser2()?->getPseudo(),
                     'votes'    => 0,
                     'points'   => 0,
                 ];

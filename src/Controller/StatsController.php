@@ -185,4 +185,136 @@ class StatsController extends AbstractController
 
         return $this->json($data);
     }
+
+    /**
+     * Heatmap d'activité du couple (30 derniers jours).
+     * GET /api/stats/couple/heatmap
+     */
+    #[Route('/stats/couple/heatmap', name: 'couple_heatmap', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function coupleHeatmap(
+        CoupleRepository $coupleRepository,
+        EntityManagerInterface $em,
+    ): JsonResponse {
+        /** @var \App\Entity\Users $me */
+        $me = $this->getUser();
+        $couple = $coupleRepository->findActiveForUser($me);
+
+        if (!$couple) {
+            return $this->json(['error' => 'Aucun couple actif.'], 404);
+        }
+
+        $modes = ['couple_live', 'couple_relax'];
+        $thirtyDaysAgo = new \DateTimeImmutable('-30 days');
+
+        $rows = $em->createQuery(
+            'SELECT CAST(s.startedAt AS date) AS day, COUNT(s.id) AS sessions
+             FROM App\Entity\Session s
+             WHERE s.couple = :couple AND s.mode IN (:modes) AND s.startedAt >= :since
+             GROUP BY CAST(s.startedAt AS date)
+             ORDER BY day ASC'
+        )->setParameters(['couple' => $couple, 'modes' => $modes, 'since' => $thirtyDaysAgo])
+         ->getArrayResult();
+
+        $cardRows = $em->createQuery(
+            'SELECT CAST(s.startedAt AS date) AS day, COUNT(sc.id) AS cards
+             FROM App\Entity\SessionCard sc
+             JOIN sc.session s
+             WHERE s.couple = :couple AND s.mode IN (:modes) AND s.startedAt >= :since
+             GROUP BY CAST(s.startedAt AS date)
+             ORDER BY day ASC'
+        )->setParameters(['couple' => $couple, 'modes' => $modes, 'since' => $thirtyDaysAgo])
+         ->getArrayResult();
+
+        $sessionMap = [];
+        foreach ($rows as $r) {
+            $key = $r['day'] instanceof \DateTimeInterface ? $r['day']->format('Y-m-d') : (string) $r['day'];
+            $sessionMap[$key] = (int) $r['sessions'];
+        }
+
+        $cardMap = [];
+        foreach ($cardRows as $r) {
+            $key = $r['day'] instanceof \DateTimeInterface ? $r['day']->format('Y-m-d') : (string) $r['day'];
+            $cardMap[$key] = (int) $r['cards'];
+        }
+
+        $days = [];
+        $totalDays = 0;
+        for ($i = 29; $i >= 0; $i--) {
+            $date = $thirtyDaysAgo->modify("+{$i} days");
+            $key = $date->format('Y-m-d');
+            $sessions = $sessionMap[$key] ?? 0;
+            $cards = $cardMap[$key] ?? 0;
+            if ($sessions > 0) $totalDays++;
+            $days[] = ['date' => $key, 'sessions' => $sessions, 'cards' => $cards];
+        }
+
+        $streak = 0;
+        $today = new \DateTimeImmutable('today');
+        for ($i = 0; $i <= 30; $i++) {
+            $checkDate = $today->modify("-{$i} days");
+            $key = $checkDate->format('Y-m-d');
+            if (($sessionMap[$key] ?? 0) > 0) {
+                $streak++;
+            } elseif ($i > 0) {
+                break;
+            }
+        }
+
+        return $this->json(['days' => $days, 'streak' => $streak, 'totalDays' => $totalDays]);
+    }
+
+    /**
+     * Statistiques enrichies avec progression (XP, niveaux).
+     * GET /api/stats/progression
+     */
+    #[Route('/stats/progression', name: 'user_progression', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function progression(
+        EntityManagerInterface $em,
+        CoupleRepository $coupleRepository,
+    ): JsonResponse {
+        /** @var \App\Entity\Users $user */
+        $user = $this->getUser();
+
+        $sessionsCount = (int) $em->createQuery(
+            'SELECT COUNT(s.id) FROM App\Entity\Session s WHERE s.user = :user'
+        )->setParameter('user', $user)->getSingleScalarResult();
+
+        $cardsCount = (int) $em->createQuery(
+            'SELECT COUNT(sc.id) FROM App\Entity\SessionCard sc JOIN sc.session s WHERE s.user = :user'
+        )->setParameter('user', $user)->getSingleScalarResult();
+
+        $xp = ($sessionsCount * 10) + ($cardsCount * 2);
+
+        $level = 1;
+        $xpRequired = 0;
+        while ($xp >= $xpRequired) {
+            $level++;
+            $xpRequired = $level * 50;
+        }
+        $level--;
+        $xpRequired = $level * 50;
+        $xpToNext = ($level + 1) * 50;
+
+        $themesExplored = (int) $em->createQuery(
+            'SELECT COUNT(DISTINCT c.theme) FROM App\Entity\SessionCard sc
+             JOIN sc.session s JOIN sc.card c WHERE s.user = :user'
+        )->setParameter('user', $user)->getSingleScalarResult();
+
+        $couple = $coupleRepository->findActiveForUser($user);
+        $coupleAnniversary = null;
+        if ($couple && $couple->getActivatedAt()) {
+            $coupleAnniversary = $couple->getActivatedAt()->diff(new \DateTimeImmutable())->days;
+        }
+
+        return $this->json([
+            'level' => $level,
+            'xp' => $xp,
+            'xpToNext' => $xpToNext,
+            'xpProgress' => $xpRequired > 0 ? ($xp - $xpRequired + 50) / 50 : 0,
+            'themesExplored' => $themesExplored,
+            'coupleAnniversary' => $coupleAnniversary,
+        ]);
+    }
 }
